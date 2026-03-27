@@ -9,6 +9,7 @@ public interface TaskJpaRepository extends JpaRepository<TaskJpaEntity, Long> {
     List<TaskJpaEntity> findAllByProjectId(Long projectId);
     List<TaskJpaEntity> findAllByProjectIdOrderByPositionAsc(Long projectId);
     List<TaskJpaEntity> findAllByProjectIdAndStatusOrderByPositionAsc(Long projectId, TaskStatus status);
+    List<TaskJpaEntity> findAllByProjectIdAndStatusAndPositionGreaterThanEqualOrderByPositionAsc(Long projectId, TaskStatus status, Integer position);
     void deleteAllByProjectId(Long projectId);
     int countByProjectId(Long projectId);
 }

@@ -35,6 +35,49 @@ public class Task {
         this.status = TaskStatus.CANCELLED;
     }
 
+    // ── Domain Method for Kanban Drag & Drop ───────────────────────
+    public void moveTo(TaskStatus newStatus, Integer newPosition) {
+        this.status = newStatus;
+        this.position = newPosition;
+    }
+
+    /**
+     * Tăng position (khi task khác di chuyển lên)
+     */
+    public void increasePosition() {
+        this.position++;
+    }
+
+    /**
+     * Giảm position (khi task khác di chuyển xuống)
+     */
+    public void decreasePosition() {
+        this.position--;
+    }
+
+    /**
+     * Validate việc di chuyển task.
+     * @throws IllegalArgumentException nếu validation fail
+     */
+    public void validateMove(TaskStatus toStatus, Integer toPosition, Long expectedProjectId) {
+        // Validate task thuộc project
+        if (!this.projectId.equals(expectedProjectId)) {
+            throw new IllegalArgumentException("Task không thuộc dự án này");
+        }
+
+        // Validate position >= 0
+        if (toPosition < 0) {
+            throw new IllegalArgumentException("Vị trí không hợp lệ (phải >= 0)");
+        }
+    }
+
+    /**
+     * Kiểm tra xem task có thuộc project không
+     */
+    public boolean belongsToProject(Long projectId) {
+        return this.projectId.equals(projectId);
+    }
+
     // ── Getters & Setters ──────────────────────────────────────────
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

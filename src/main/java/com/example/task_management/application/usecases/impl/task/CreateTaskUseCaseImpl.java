@@ -12,6 +12,7 @@ import com.example.task_management.domain.entities.User;
 import com.example.task_management.domain.enums.InvitationStatus;
 import com.example.task_management.domain.factory.TaskFactory;
 import com.example.task_management.infrastructure.persistence.adapters.TaskRepositoryAdapter;
+import com.example.task_management.interfaces.mappers.TaskMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,16 +23,19 @@ public class CreateTaskUseCaseImpl implements CreateTaskUseCase {
         private final ProjectMemberRepository projectMemberRepository;
         private final UserRepository userRepository;
         private final TaskRepositoryAdapter taskRepositoryAdapter;
+        private final TaskMapper taskMapper;
 
         public CreateTaskUseCaseImpl(
                         ProjectRepository projectRepository,
                         ProjectMemberRepository projectMemberRepository,
                         UserRepository userRepository,
-                        TaskRepositoryAdapter taskRepositoryAdapter) {
+                        TaskRepositoryAdapter taskRepositoryAdapter,
+                        TaskMapper taskMapper) {
                 this.projectRepository = projectRepository;
                 this.projectMemberRepository = projectMemberRepository;
                 this.userRepository = userRepository;
                 this.taskRepositoryAdapter = taskRepositoryAdapter;
+                this.taskMapper = taskMapper;
         }
 
         @Override
@@ -68,15 +72,7 @@ public class CreateTaskUseCaseImpl implements CreateTaskUseCase {
                 // Lưu vào Database
                 Task savedTask = taskRepositoryAdapter.save(task);
 
-                // Trả về DTO
-                return TaskResponse.builder()
-                                .id(savedTask.getId())
-                                .title(savedTask.getTitle())
-                                .description(savedTask.getDescription())
-                                .status(savedTask.getStatus())
-                                .projectId(savedTask.getProjectId())
-                                .assigneeId(savedTask.getAssigneeId())
-                                .position(savedTask.getPosition())
-                                .build();
+                // Trả về DTO sử dụng mapper
+                return taskMapper.toTaskResponse(savedTask);
         }
 }

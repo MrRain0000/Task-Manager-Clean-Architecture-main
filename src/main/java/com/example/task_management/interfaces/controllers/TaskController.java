@@ -1,10 +1,12 @@
 package com.example.task_management.interfaces.controllers;
 
 import com.example.task_management.application.dto.request.task.CreateTaskRequest;
+import com.example.task_management.application.dto.request.task.MoveTaskRequest;
 import com.example.task_management.application.dto.response.ApiResponse;
 import com.example.task_management.application.dto.response.task.TaskResponse;
 import com.example.task_management.application.usecases.task.CreateTaskUseCase;
 import com.example.task_management.application.usecases.task.GetTaskUseCase;
+import com.example.task_management.application.usecases.task.MoveTaskUseCase;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,10 +21,12 @@ public class TaskController {
 
     private final CreateTaskUseCase createTaskUseCase;
     private final GetTaskUseCase getTaskUseCase;
+    private final MoveTaskUseCase moveTaskUseCase;
 
-    public TaskController(CreateTaskUseCase createTaskUseCase, GetTaskUseCase getTaskUseCase) {
+    public TaskController(CreateTaskUseCase createTaskUseCase, GetTaskUseCase getTaskUseCase, MoveTaskUseCase moveTaskUseCase) {
         this.createTaskUseCase = createTaskUseCase;
         this.getTaskUseCase = getTaskUseCase;
+        this.moveTaskUseCase = moveTaskUseCase;
     }
 
     // POST /api/projects/{projectId}/tasks
@@ -47,5 +51,17 @@ public class TaskController {
 
         List<TaskResponse> tasks = getTaskUseCase.getTasks(projectId, status, authentication.getName());
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách task thành công", tasks));
+    }
+
+    // POST /api/projects/{projectId}/tasks/{taskId}/move
+    @PostMapping("/{taskId}/move")
+    public ResponseEntity<ApiResponse<TaskResponse>> moveTask(
+            @PathVariable Long projectId,
+            @PathVariable Long taskId,
+            @Valid @RequestBody MoveTaskRequest request,
+            Authentication authentication) {
+
+        TaskResponse taskResponse = moveTaskUseCase.moveTask(projectId, taskId, request, authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Di chuyển task thành công", taskResponse));
     }
 }

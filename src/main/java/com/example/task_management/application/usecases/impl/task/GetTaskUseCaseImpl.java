@@ -71,7 +71,7 @@ public class GetTaskUseCaseImpl implements GetTaskUseCase {
                         + Arrays.toString(TaskStatus.values())
                 );
             }
-            tasks = taskRepository.findAllByProjectIdAndStatus(projectId, taskStatus);
+            tasks = taskRepository.findAllByProjectIdAndStatusOrderByPositionAsc(projectId, taskStatus);
         }
 
         // Map → DTO

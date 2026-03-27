@@ -43,9 +43,21 @@ public class TaskRepositoryAdapter implements TaskRepository {
     }
 
     @Override
-    public List<Task> findAllByProjectIdAndStatus(Long projectId, TaskStatus status) {
+    public List<Task> findAllByProjectIdAndStatusOrderByPositionAsc(Long projectId, TaskStatus status) {
         return taskJpaRepository.findAllByProjectIdAndStatusOrderByPositionAsc(projectId, status)
                 .stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<Task> findAllByProjectIdAndStatusAndPositionGreaterThanEqual(Long projectId, TaskStatus status, Integer position) {
+        return taskJpaRepository.findAllByProjectIdAndStatusAndPositionGreaterThanEqualOrderByPositionAsc(projectId, status, position)
+                .stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public void saveAll(List<Task> tasks) {
+        List<TaskJpaEntity> entities = tasks.stream().map(this::toJpaEntity).toList();
+        taskJpaRepository.saveAll(entities);
     }
 
     @Override

@@ -180,3 +180,58 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 ```
 - **Note**: Nếu truyền `status` không hợp lệ sẽ nhận lỗi `400` với thông báo rõ ràng.
 
+### 4.3 Di chuyển Task (Drag & Drop Kanban)
+- **URL**: `POST /api/projects/{projectId}/tasks/{taskId}/move`
+- **Auth Required**: Yes (Thành viên ACCEPTED của dự án)
+- **Request Body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `toStatus` | String | Yes | Status mới: `TODO`, `IN_PROGRESS`, `DONE`, `CANCELLED` |
+| `toPosition` | Integer | Yes | Vị trí mới trong column (bắt đầu từ 0) |
+
+- **Ví dụ 1: Move trong cùng column (TODO → TODO)**
+```json
+{
+    "toStatus": "TODO",
+    "toPosition": 0
+}
+```
+
+- **Ví dụ 2: Move sang column khác (TODO → IN_PROGRESS)**
+```json
+{
+    "toStatus": "IN_PROGRESS",
+    "toPosition": 2
+}
+```
+
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Di chuyển task thành công",
+    "data": {
+        "id": 1,
+        "title": "Thiết kế màn hình Login",
+        "description": "Làm theo Figma đã được duyệt",
+        "status": "IN_PROGRESS",
+        "projectId": 1,
+        "assigneeId": null,
+        "position": 2
+    }
+}
+```
+- **Business Rules**:
+  - Task phải tồn tại và thuộc project được chỉ định.
+  - User phải là thành viên ACCEPTED của project.
+  - `toStatus` phải là giá trị hợp lệ: `TODO`, `IN_PROGRESS`, `DONE`, `CANCELLED`.
+  - `toPosition` phải >= 0.
+  - Position được tự động normalizelại liên tục (không có khoảng trống).
+  - Các task khác trong cùng column sẽ tự động shift position để đảm bảo thứ tự.
+  - Nếu move sang column khác: task sẽ được xóa khỏi column cũ và thêm vào column mới với status mới.
+- **Error Cases**:
+  - `400`: Status không hợp lệ hoặc position < 0.
+  - `403`: User không phải thành viên ACCEPTED của project.
+  - `404`: Task không tồn tại hoặc không thuộc project.
+

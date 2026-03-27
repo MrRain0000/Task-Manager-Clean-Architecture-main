@@ -8,13 +8,14 @@ import org.springframework.stereotype.Component;
 public class TaskMapper {
 
     public TaskResponse toTaskResponse(Task task) {
-        TaskResponse response = new TaskResponse();
-        response.setId(task.getId());
-        response.setTitle(task.getTitle());
-        response.setDescription(task.getDescription());
-        response.setStatus(task.getStatus());
-        response.setProjectId(task.getProjectId());
-        response.setAssigneeId(task.getAssigneeId());
-        return response;
+        return TaskResponse.builder()
+                .id(task.getId())
+                .title(task.getTitle())
+                .description(task.getDescription())
+                .status(task.getStatus())
+                .projectId(task.getProjectId())
+                .assigneeId(task.getAssigneeId())
+                .position(task.getPosition())
+                .build();
     }
 }

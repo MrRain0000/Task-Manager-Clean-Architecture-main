@@ -1,16 +1,11 @@
 package com.example.task_management.application.repositories;
 
-import com.example.task_management.domain.entities.Task;
-import com.example.task_management.domain.enums.TaskStatus;
-import java.util.List;
-import java.util.Optional;
+import com.example.task_management.application.repositories.task.TaskCommandRepository;
+import com.example.task_management.application.repositories.task.TaskQueryRepository;
 
-public interface TaskRepository {
-    Task save(Task task);
-    Optional<Task> findById(Long id);
-    List<Task> findAllByProjectId(Long projectId);
-    List<Task> findAllByProjectIdOrderByPosition(Long projectId);
-    List<Task> findAllByProjectIdAndStatus(Long projectId, TaskStatus status);
-    void deleteById(Long id);
-    void deleteAllByProjectId(Long projectId);
+/**
+ * TaskRepository kế thừa cả Query và Command repositories.
+ * Có thể dùng trực tiếp hoặc inject riêng TaskQueryRepository/TaskCommandRepository.
+ */
+public interface TaskRepository extends TaskQueryRepository, TaskCommandRepository {
 }
