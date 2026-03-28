@@ -41,6 +41,10 @@ public class Task {
         this.position = newPosition;
     }
 
+    public void assignTo(Long userId) {
+        this.assigneeId = userId;
+    }
+
     /**
      * Tăng position (khi task khác di chuyển lên)
      */

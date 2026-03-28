@@ -19,4 +19,6 @@ public interface TaskQueryRepository {
     List<Task> findAllByProjectIdAndStatusOrderByPositionAsc(Long projectId, TaskStatus status);
     
     List<Task> findAllByProjectIdAndStatusAndPositionGreaterThanEqual(Long projectId, TaskStatus status, Integer position);
+
+    int countByProjectId(Long projectId);
 }

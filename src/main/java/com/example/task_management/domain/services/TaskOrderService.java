@@ -5,10 +5,7 @@ import com.example.task_management.domain.enums.TaskStatus;
 
 import java.util.List;
 
-/**
- * Domain Service xử lý logic reordering Task trong Kanban board
- * Tách biệt logic phức tạp khỏi Use Case
- */
+
 public interface TaskOrderService {
 
     /**

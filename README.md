@@ -1,56 +1,200 @@
  # Task Management System (Clean Architecture)
 
-Đây là hệ thống quản lý công việc (Task Management) được xây dựng dựa trên nguyên tắc **Clean Architecture**. Hệ thống cung cấp các RESTful API giúp người dùng phân quyền, quản lý dự án, mời thành viên nhóm và theo dõi tiến độ công việc một cách hiệu quả và bảo mật.
+Hệ thống quản lý công việc (Task Management) xây dựng trên **Clean Architecture**, cung cấp RESTful API cho phân quyền, quản lý dự án và theo dõi tiến độ công việc.
 
-## 🚀 Tính năng chính (Core Features)
+---
 
-### 1. Xác thực & Phân quyền (Authentication & Authorization)
-- Đăng ký và đăng nhập tài khoản hệ thống bằng Email/Password.
-- Hỗ trợ đăng nhập thông qua **Google OAuth2**.
-- Bảo vệ các endpoint API bằng **JWT (JSON Web Token)** (`Authorization: Bearer <TOKEN>`).
-- Xử lý lỗi bảo mật tập trung bằng Custom Exception (như `JwtAuthEntryPoint`) để trả về JSON chuẩn khi không có quyền truy cập (Lỗi 401/403).
+## 📌 Overview
 
-### 2. Quản lý Dự án (Project Management)
-- Khởi tạo dự án mới: Người tạo tự động trở thành `OWNER` và tự động được phê duyệt (`ACCEPTED`).
-- Xóa dự án (Chỉ dành cho quyền `OWNER`): Hệ thống tự động xóa liên đới (cascade delete) dữ liệu của Công việc (Tasks) và Thành viên (Members) để giữ sạch CSDL.
+Dự án áp dụng **Clean Architecture** và **Domain-Driven Design (DDD)** thực tế:
+- Business logic nằm trong **Domain Entities** (Task, Project, User)
+- Tách biệt rõ ràng giữa **Application** (Use Cases) và **Infrastructure** (Database, Security)
+- **CQRS Pattern** cho Task Repository (read/write separation)
+- **Kanban Board** với drag & drop và transaction-safe reordering
 
-### 3. Thành viên & Lời mời (Project Invitations)
-- Mời người dùng khác tham gia vào dự án (Chỉ `OWNER` mới có quyền mời).
-- Quản lý trạng thái lời mời: Người được mời có thể xem danh sách lời mời (PENDING) và thực hiện Chấp nhận (ACCEPT) hoặc Từ chối (REJECT).
-- Đảm bảo người dùng phải xác thực tài khoản (Verified) mới có thể tham gia dự án.
+---
 
-### 4. Quản lý Công việc (Task Management)
-- Khởi tạo Task trong một Project cụ thể: Tự động gán trạng thái khởi tạo là `TODO`.
-- Quản lý vị trí tự động: Task mới sinh ra sẽ tự động được gán `position` nối tiếp cuối danh sách.
-- Phân luồng Status linh hoạt: Quản lý vòng đời trạng thái (`TODO`, `IN_PROGRESS`, `DONE`, `CANCELLED`).
-- Kiểm tra quyền chặt chẽ: Các API liên quan tới Task yêu cầu Caller phải là thành viên chính thức (`ACCEPTED`) của Dự án.
+## ⭐ Highlights
 
-#### 🎯 Kanban Board - Drag & Drop
-- **Di chuyển Task linh hoạt**: Hỗ trợ kéo thả task trong cùng column hoặc giữa các column khác nhau.
-- **Tự động cập nhật Position**: Khi di chuyển task, hệ thống tự động tính toán và cập nhật lại thứ tự các task còn lại (normalization).
-- **Tự động chuyển Status**: Khi kéo task sang column khác, status tự động cập nhật theo column đích.
-- **Bảo toàn dữ liệu**: Các thao tác reorder được thực hiện trong transaction để đảm bảo tính nhất quán.
+| Feature | Implementation |
+|---------|----------------|
+| **Clean Architecture** | 4 layers: Domain → Application → Infrastructure → Interface |
+| **CQRS** | `TaskQueryRepository` (read) / `TaskCommandRepository` (write) |
+| **DDD** | Business logic trong Entity (`start()`, `complete()`, `assignTo()`) |
+| **Kanban Drag & Drop** | Transaction-safe reordering với `TaskOrderService` |
+| **Security** | JWT + Google OAuth2, Role-based (OWNER / MEMBER) |
 
-#### 📋 Business Rules cho Task
-- **State Transitions (Bảo vệ chuyển đổi trạng thái)**:
-  - `start()`: Chỉ cho phép từ `TODO` → `IN_PROGRESS`
-  - `complete()`: Chỉ cho phép từ `IN_PROGRESS` → `DONE`
-  - `cancel()`: Không cho phép từ `DONE` → `CANCELLED`
-- **Position Management**: Position là số nguyên liên tục, không có khoảng trống.
-- **Authorization**: Chỉ thành viên `ACCEPTED` mới được di chuyển task.
+---
 
-## 🏗️ Kiến trúc & Thiết kế mã nguồn (Architecture)
+## 🧰 Tech Stack
 
-Dự án tuân thủ nghiêm ngặt **Clean Architecture** để đảm bảo tính độc lập, dễ dàng bảo trì và mở rộng:
-- **Domain Layer**: Chứa trực tiếp các thực thể (Entities) và các hàm thực thi business rule độc lập.
-  - **Domain Entities**: `Task`, `Project`, `User`, `ProjectMember` với các business methods (`start()`, `complete()`, `validateMove()`, `increasePosition()`...)
-  - **Domain Services**: `TaskOrderService` xử lý logic phức tạp về reordering task, tách biệt khỏi Use Case.
-- **Application Layer**: Chứa Use Cases, các Interface (Ports) của Repositories, các DTOs phục vụ giao tiếp.
-  - **CQRS Pattern**: Tách `TaskRepository` thành `TaskQueryRepository` (read) và `TaskCommandRepository` (write) để tối ưu và rõ ràng hóa trách nhiệm.
-- **Infrastructure Layer**: Triển khai các tính năng tầng logic dưới như Database (Spring Data JPA), Bảo mật (Spring Security), kết nối tới Third-Party APIs.
-- **Interface Layer**: Control dòng dữ liệu vào hệ thống (Controllers), nhận HTTP Requests và gọi trực tiếp xuống Application layer.
+| Layer | Technology |
+|-------|------------|
+| **Language** | Java 17 |
+| **Framework** | Spring Boot 3.x |
+| **Security** | Spring Security (JWT + OAuth2) |
+| **Data** | JPA / Hibernate, MySQL |
+| **Build** | Maven |
+| **Docs** | Markdown (API_DOCS.md) |
 
-## 📝 Document API
+---
 
-Chi tiết về các URL, tham số, Headers và dữ liệu mẫu của các API, vui lòng xem tại file tài liệu:
-👉 **[API_DOCS.md](./API_DOCS.md)**
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────┐
+│         Interface Layer                 │
+│    (Controllers, DTOs, Mappers)         │
+├─────────────────────────────────────────┤
+│        Application Layer                │
+│   (Use Cases, Repository Interfaces)    │
+│     CQRS: TaskQuery/CommandRepo         │
+├─────────────────────────────────────────┤
+│          Domain Layer                   │
+│  (Entities, Domain Services, Enums)     │
+│  Task.start(), TaskOrderService         │
+├─────────────────────────────────────────┤
+│       Infrastructure Layer              │
+│  (JPA Repositories, Security, Config)   │
+└─────────────────────────────────────────┘
+```
+
+### Domain Layer
+- **Entities**: `Task`, `Project`, `User`, `ProjectMember`
+- **Domain Services**: `TaskOrderService`, `TaskAssignerService`
+- **Business Methods**: `start()`, `complete()`, `validateMove()`, `assignTo()`
+
+### Application Layer
+- **Use Cases**: `CreateTaskUseCase`, `MoveTaskUseCase`, `AssignTaskUseCase`
+- **CQRS**: `TaskQueryRepository` (read ops) / `TaskCommandRepository` (write ops)
+
+---
+
+## 🚀 Features
+
+### 🔐 Authentication
+- JWT Bearer Token (`Authorization: Bearer <token>`)
+- Google OAuth2 Login
+- Custom Exception Handling (401/403)
+
+### 📁 Project Management
+- **OWNER**: Full control, invite members, delete project
+- **MEMBER**: View, create/move/assign tasks
+- Auto-cascade delete (tasks + members)
+
+### 👥 Member System
+- **Invite**: PENDING → ACCEPT / REJECT
+- **Role**: OWNER / MEMBER
+- **Status**: ACCEPTED mới được thao tác
+
+### 📋 Task Management
+- **Status**: TODO → IN_PROGRESS → DONE (state transitions protected)
+- **Kanban**: Drag & drop với position normalization
+- **Assign**: Giao task cho member (hoặc unassign)
+
+---
+
+## 🛠️ Run Project
+
+### Prerequisites
+- Java 17+
+- MySQL 8.0+
+- Maven 3.8+
+
+### Database Setup
+```sql
+CREATE DATABASE task_management CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+### Configuration
+```src/main/resources/
+# application.properties
+spring.datasource.url=jdbc:mysql://localhost:3306/task_management
+spring.datasource.username=your_username
+spring.datasource.password=your_password
+spring.jpa.hibernate.ddl-auto=update
+
+# JWT
+jwt.secret=your-secret-key
+jwt.expiration=86400000
+
+# Google OAuth2 (optional)
+spring.security.oauth2.client.registration.google.client-id=your-client-id
+spring.security.oauth2.client.registration.google.client-secret=your-client-secret
+```
+
+### Run
+```bash
+# Clone project
+git clone <repo-url>
+cd Task-Management_Clean-Architecture
+
+# Build
+mvn clean install
+
+# Run
+mvn spring-boot:run
+
+# Or run jar
+java -jar target/task-management-*.jar
+```
+
+### Default Port
+- Application: `http://localhost:8080`
+- API Base: `/api`
+
+---
+
+## 📖 API Documentation
+
+Chi tiết endpoints, request/response, business rules:
+
+📄 **[API_DOCS.md](./API_DOCS.md)**
+
+### Key Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | JWT Login |
+| POST | `/api/auth/register` | Register user |
+| POST | `/api/projects` | Create project |
+| POST | `/api/projects/{id}/tasks` | Create task |
+| POST | `/api/projects/{id}/tasks/{taskId}/move` | Move task (Kanban) |
+| POST | `/api/projects/{id}/tasks/{taskId}/assign` | Assign task |
+
+---
+
+## 📁 Project Structure
+
+```
+src/main/java/com/example/task_management/
+├── domain/                 # Business logic
+│   ├── entities/          # Task, Project, User
+│   ├── services/          # TaskOrderService
+│   └── enums/             # TaskStatus, InvitationStatus
+├── application/           # Use cases
+│   ├── usecases/          # Interfaces
+│   ├── usecases/impl/     # Implementations
+│   ├── dto/              # Request/Response
+│   └── repositories/     # Interfaces (Ports)
+├── infrastructure/        # Adapters
+│   ├── persistence/       # JPA Entities & Repos
+│   └── security/          # JWT, OAuth2
+└── interfaces/           # Controllers
+    └── controllers/       # REST API
+```
+
+---
+
+## 🔒 Security Best Practices
+
+- ✅ Không log sensitive data (email, PII)
+- ✅ JWT tokens với expiration
+- ✅ Role-based authorization (OWNER/MEMBER)
+- ✅ Transaction-safe cho multi-task operations
+- ✅ Input validation với Jakarta Validation
+
+---
+
+## � License
+
+MIT License

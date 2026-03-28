@@ -235,3 +235,55 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
   - `403`: User không phải thành viên ACCEPTED của project.
   - `404`: Task không tồn tại hoặc không thuộc project.
 
+### 4.4 Giao Task (Assign Task)
+- **URL**: `POST /api/projects/{projectId}/tasks/{taskId}/assign`
+- **Auth Required**: Yes (Thành viên ACCEPTED của dự án)
+- **Request Body**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `assigneeId` | Long | No | ID của user được giao task. `null` = hủy giao |
+
+- **Ví dụ 1: Giao task cho user**
+```json
+{
+    "assigneeId": 5
+}
+```
+
+- **Ví dụ 2: Hủy giao task (unassign)**
+```json
+{
+    "assigneeId": null
+}
+```
+
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Giao task thành công",
+    "data": {
+        "id": 1,
+        "title": "Thiết kế màn hình Login",
+        "description": "Làm theo Figma đã được duyệt",
+        "status": "TODO",
+        "projectId": 1,
+        "assigneeId": 5,
+        "position": 0
+    }
+}
+```
+
+- **Business Rules**:
+  - Task phải tồn tại và thuộc project được chỉ định.
+  - Assigner (người gọi API) phải là thành viên ACCEPTED của project.
+  - Assignee (người được giao) phải tồn tại và là thành viên ACCEPTED của project.
+  - Cho phép tự giao task cho chính mình.
+  - Cho phép hủy giao bằng cách truyền `assigneeId = null`.
+
+- **Error Cases**:
+  - `400`: Assignee không phải thành viên của project hoặc chưa ACCEPTED.
+  - `403`: Assigner không phải thành viên ACCEPTED của project.
+  - `404`: Task không tồn tại, không thuộc project, hoặc assignee không tồn tại.
+

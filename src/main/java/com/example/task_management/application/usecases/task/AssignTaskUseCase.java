@@ -5,5 +5,5 @@ import com.example.task_management.application.dto.response.task.TaskResponse;
 
 // UC10 – Gán task
 public interface AssignTaskUseCase {
-    TaskResponse assignTask(Long taskId, AssignTaskRequest request);
+    TaskResponse assignTask(Long projectId, Long taskId, AssignTaskRequest request, String userEmail);
 }
