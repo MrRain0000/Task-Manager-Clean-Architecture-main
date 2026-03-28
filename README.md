@@ -23,6 +23,7 @@ Dự án áp dụng **Clean Architecture** và **Domain-Driven Design (DDD)** th
 | **DDD** | Business logic trong Entity (`start()`, `complete()`, `assignTo()`) |
 | **Kanban Drag & Drop** | Transaction-safe reordering với `TaskOrderService` |
 | **Security** | JWT + Google OAuth2, Role-based (OWNER / MEMBER) |
+| **Email Verification** | Resend API, 24h token expiration, 60s cooldown |
 
 ---
 
@@ -34,6 +35,7 @@ Dự án áp dụng **Clean Architecture** và **Domain-Driven Design (DDD)** th
 | **Framework** | Spring Boot 3.x |
 | **Security** | Spring Security (JWT + OAuth2) |
 | **Data** | JPA / Hibernate, MySQL |
+| **Email** | Resend API (verification + password reset) |
 | **Build** | Maven |
 | **Docs** | Markdown (API_DOCS.md) |
 
@@ -60,8 +62,10 @@ Dự án áp dụng **Clean Architecture** và **Domain-Driven Design (DDD)** th
 ```
 
 ### Domain Layer
-- **Entities**: `Task`, `Project`, `User`, `ProjectMember`
-- **Domain Services**: `TaskOrderService`, `TaskAssignerService`
+- **Entities**: `Task`, `Project`, `User`, `ProjectMember`, `VerificationToken`
+- **Domain Services**: 
+  - `Task.TaskOrderService`, `Task.TaskAssignerService`
+  - `Email.EmailService`
 - **Business Methods**: `start()`, `complete()`, `validateMove()`, `assignTo()`
 
 ### Application Layer
@@ -74,7 +78,8 @@ Dự án áp dụng **Clean Architecture** và **Domain-Driven Design (DDD)** th
 
 ### 🔐 Authentication
 - JWT Bearer Token (`Authorization: Bearer <token>`)
-- Google OAuth2 Login
+- Google OAuth2 Login (auto-verified)
+- Email Verification (Resend API, 24h token, 60s cooldown)
 - Custom Exception Handling (401/403)
 
 ### 📁 Project Management
@@ -113,6 +118,11 @@ spring.datasource.url=jdbc:mysql://localhost:3306/task_management
 spring.datasource.username=your_username
 spring.datasource.password=your_password
 spring.jpa.hibernate.ddl-auto=update
+
+# Resend Email API
+RESEND_API_KEY=your-resend-api-key
+app.email.from=your-verified-domain@example.com
+app.frontend.url=http://localhost:5173
 
 # JWT
 jwt.secret=your-secret-key
@@ -154,8 +164,11 @@ Chi tiết endpoints, request/response, business rules:
 ### Key Endpoints
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| POST | `/api/auth/register` | Register user (sends verification email) |
 | POST | `/api/auth/login` | JWT Login |
-| POST | `/api/auth/register` | Register user |
+| POST | `/api/auth/login/google` | Google OAuth2 Login |
+| GET | `/api/auth/verify?token=xxx` | Verify email |
+| POST | `/api/auth/resend-verification` | Resend verification email (60s cooldown) |
 | POST | `/api/projects` | Create project |
 | POST | `/api/projects/{id}/tasks` | Create task |
 | POST | `/api/projects/{id}/tasks/{taskId}/move` | Move task (Kanban) |
@@ -168,8 +181,8 @@ Chi tiết endpoints, request/response, business rules:
 ```
 src/main/java/com/example/task_management/
 ├── domain/                 # Business logic
-│   ├── entities/          # Task, Project, User
-│   ├── services/          # TaskOrderService
+│   ├── entities/          # Task, Project, User, VerificationToken
+│   ├── services/          # Task.*, Email.*, Project.*
 │   └── enums/             # TaskStatus, InvitationStatus
 ├── application/           # Use cases
 │   ├── usecases/          # Interfaces
