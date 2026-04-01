@@ -1,7 +1,7 @@
 package com.example.task_management.application.usecases.impl.project;
 
+import com.example.task_management.application.DTOUsecase.response.project.ProjectResult;
 import com.example.task_management.interfaces.dto.request.project.CreateProjectRequest;
-import com.example.task_management.interfaces.dto.response.project.ProjectResponse;
 import com.example.task_management.application.repositories.ProjectMemberRepository;
 import com.example.task_management.application.repositories.ProjectRepository;
 import com.example.task_management.application.repositories.UserRepository;
@@ -46,7 +46,7 @@ class CreateProjectUseCaseImplTest {
     private User owner;
     private CreateProjectRequest request;
     private Project savedProject;
-    private ProjectResponse response;
+    private ProjectResult response;
     private String currentUserEmail = "owner@example.com";
 
     @BeforeEach
@@ -65,9 +65,10 @@ class CreateProjectUseCaseImplTest {
         savedProject.setDescription("Test Description");
         savedProject.setOwnerId(owner.getId());
 
-        response = new ProjectResponse();
-        response.setId(10L);
-        response.setName("Test Project");
+        response = ProjectResult.builder()
+                .id(10L)
+                .name("Test Project")
+                .build();
     }
 
     @Test
@@ -78,7 +79,7 @@ class CreateProjectUseCaseImplTest {
         when(projectMapper.toProjectResponse(savedProject)).thenReturn(response);
 
         // Act
-        ProjectResponse result = createProjectUseCase.createProject(request, currentUserEmail);
+        ProjectResult result = createProjectUseCase.createProject(request, currentUserEmail);
 
         // Assert
         assertNotNull(result);
