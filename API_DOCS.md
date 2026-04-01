@@ -18,7 +18,18 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
     "password": "password123"
 }
 ```
-- **Note**: Tài khoản tạo mặc định `isVerified = false`.
+- **Response** (201 Created):
+```json
+{
+    "status": 201,
+    "message": "Đăng ký thành công",
+    "data": {
+        "id": 1,
+        "username": "Nguyen Thinh",
+        "email": "nguyenthinhh4@gmail.com"
+    }
+}
+```
 
 ### 1.2 Đăng nhập hệ thống (Mật khẩu)
 - **URL**: `POST /api/auth/login`
@@ -30,6 +41,17 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
     "password": "password123"
 }
 ```
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Đăng nhập thành công",
+    "data": {
+        "accessToken": "eyJhbGciOiJSUz...",
+        "tokenType": "Bearer"
+    }
+}
+```
 
 ### 1.3 Đăng nhập bằng Google
 - **URL**: `POST /api/auth/login/google`
@@ -38,6 +60,17 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 ```json
 {
     "idToken": "eyJhbGciOiJSUz..."
+}
+```
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Đăng nhập Google thành công",
+    "data": {
+        "accessToken": "eyJhbGciOiJSUz...",
+        "tokenType": "Bearer"
+    }
 }
 ```
 - **Note**: `isVerified` tự động gạt sang `true`.
@@ -102,6 +135,19 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
     "description": "Làm giao diện chuẩn UI/UX cho công ty ABC"
 }
 ```
+- **Response** (201 Created):
+```json
+{
+    "status": 201,
+    "message": "Dự án đã được tạo thành công",
+    "data": {
+        "id": 1,
+        "name": "Dự án Thiết kế Website",
+        "description": "Làm giao diện chuẩn UI/UX cho công ty ABC",
+        "ownerId": 1
+    }
+}
+```
 - **Note**: Người tạo tự động trở thành `OWNER` và Status `ACCEPTED`.
 
 ### 2.2 Xóa dự án
@@ -128,6 +174,14 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 ```json
 {
     "inviteeEmail": "nguoi_duoc_moi@gmail.com"
+}
+```
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Gửi lời mời thành công",
+    "data": null
 }
 ```
 - **Note**: Trạng thái lời mời ban đầu là `PENDING`. Người được mời bắt buộc phải verified.
@@ -157,7 +211,15 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
     "isAccept": true
 }
 ```
-- **Note**: `true` để ACCEPTED (vào dự án), `false` để REJECTED (từ chối lòi mời).
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Đã Chấp nhận lời mời vào dự án",
+    "data": null
+}
+```
+- **Note**: `true` để ACCEPTED (vào dự án), `false` để REJECTED (từ chối lời mời). Khi từ chối, message sẽ là `"Đã Từ chối lời mời vào dự án"`.
 
 ---
 
