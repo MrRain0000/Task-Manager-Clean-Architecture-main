@@ -34,4 +34,4 @@ build/
 
 ### Environment secrets – DO NOT COMMIT ###
 .env
-application.properties
+application

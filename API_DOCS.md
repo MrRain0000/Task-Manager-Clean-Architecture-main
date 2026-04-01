@@ -149,7 +149,7 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
     ]
 }
 ```
-- **Note**: Chỉ trả về các dự án mà user là owner.
+- **Note**: Trả về toàn bộ dự án mà user đang là thành viên với trạng thái `ACCEPTED` (bao gồm cả `OWNER` và `MEMBER`). Nếu vừa được mời vào dự án, user cần chấp nhận lời mời (API 3.3) thì dự án mới xuất hiện trong danh sách.
 
 ### 2.2 Tạo dự án mới
 - **URL**: `POST /api/projects`

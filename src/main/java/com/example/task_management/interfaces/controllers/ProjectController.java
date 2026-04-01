@@ -42,7 +42,7 @@ public class ProjectController {
         public ResponseEntity<ApiResponse<List<ProjectResponse>>> getProjects(Authentication authentication) {
                 String currentUserEmail = authentication.getName();
 
-                List<ProjectResult> results = getProjectListUseCase.getProjectsByOwner(currentUserEmail);
+                List<ProjectResult> results = getProjectListUseCase.getMyProjects(currentUserEmail);
                 List<ProjectResponse> responseData = results.stream()
                                 .map(projectResponseMapper::toProjectResponse)
                                 .collect(Collectors.toList());
