@@ -9,6 +9,12 @@ import com.example.task_management.domain.entities.Project;
 import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.User;
 import com.example.task_management.domain.factory.ProjectMemberFactory;
+import com.example.task_management.application.usecases.activitylog.LogActivityUseCase;
+import com.example.task_management.application.DTOUsecase.request.LogActivityRequest;
+import com.example.task_management.domain.enums.ActionType;
+import com.example.task_management.domain.enums.EntityType;
+import com.example.task_management.domain.enums.MemberRole;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,12 +25,14 @@ public class InviteMemberUseCaseImpl implements InviteMemberUseCase {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
+    private final LogActivityUseCase logActivityUseCase;
 
     public InviteMemberUseCaseImpl(ProjectRepository projectRepository, ProjectMemberRepository projectMemberRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository, LogActivityUseCase logActivityUseCase) {
         this.projectRepository = projectRepository;
         this.projectMemberRepository = projectMemberRepository;
         this.userRepository = userRepository;
+        this.logActivityUseCase = logActivityUseCase;
     }
 
     @Override
@@ -70,6 +78,21 @@ public class InviteMemberUseCaseImpl implements InviteMemberUseCase {
                 invitee.getId());
 
         projectMemberRepository.save(newMember);
+
+        // Ghi log hoạt động (async)
+        logActivityUseCase.logActivity(LogActivityRequest.builder()
+                .projectId(projectId)
+                .userId(inviter.getId())
+                .actionType(ActionType.MEMBER_INVITED)
+                .entityType(EntityType.MEMBER)
+                .entityId(invitee.getId())
+                .description("Invited " + invitee.getEmail() + " to project")
+                .metadata(Map.of(
+                        "inviteeEmail", invitee.getEmail(),
+                        "inviteeId", invitee.getId(),
+                        "role", MemberRole.MEMBER.name()
+                ))
+                .build());
 
         // 7. (Placeholder) - Tích hợp gọi Email Service tại đây (hiện đang bảo trì)
         System.out.println(

@@ -133,20 +133,23 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 {
     "status": 200,
     "message": "Lấy danh sách dự án thành công",
-    "data": [
-        {
-            "id": 1,
-            "name": "Dự án Thiết kế Website",
-            "description": "Làm giao diện chuẩn UI/UX cho công ty ABC",
-            "ownerId": 1
-        },
-        {
-            "id": 2,
-            "name": "Dự án Mobile App",
-            "description": "Phát triển ứng dụng di động cho iOS và Android",
-            "ownerId": 1
-        }
-    ]
+    "data": {
+        "projects": [
+            {
+                "id": 1,
+                "name": "Dự án Thiết kế Website",
+                "description": "Làm giao diện chuẩn UI/UX cho công ty ABC",
+                "ownerId": 1
+            },
+            {
+                "id": 2,
+                "name": "Dự án Mobile App",
+                "description": "Phát triển ứng dụng di động cho iOS và Android",
+                "ownerId": 1
+            }
+        ],
+        "totalProjects": 2
+    }
 }
 ```
 - **Note**: Trả về toàn bộ dự án mà user đang là thành viên với trạng thái `ACCEPTED` (bao gồm cả `OWNER` và `MEMBER`). Nếu vừa được mời vào dự án, user cần chấp nhận lời mời (API 3.3) thì dự án mới xuất hiện trong danh sách.
@@ -314,7 +317,44 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 ```
 - **Note**: Nếu truyền `status` không hợp lệ sẽ nhận lỗi `400` với thông báo rõ ràng.
 
-### 4.3 Di chuyển Task (Drag & Drop Kanban)
+### 4.3 Lấy chi tiết Task
+- **URL**: `GET /api/projects/{projectId}/tasks/{taskId}`
+- **Auth Required**: Yes (Thành viên ACCEPTED của dự án)
+- **Path Params**:
+  - `projectId` (Long, Required): ID của dự án
+  - `taskId` (Long, Required): ID của task cần lấy chi tiết
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Lấy chi tiết task thành công",
+    "data": {
+        "id": 1,
+        "title": "Thiết kế màn hình Login",
+        "description": "Làm theo Figma đã được duyệt",
+        "status": "TODO",
+        "position": 1,
+        "project": {
+            "id": 1,
+            "name": "Dự án Thiết kế Website"
+        },
+        "assignee": {
+            "id": 5,
+            "username": "Nguyen Van A",
+            "email": "nguyenvana@gmail.com"
+        }
+    }
+}
+```
+- **Business Rules**:
+  - Task phải tồn tại và thuộc project được chỉ định.
+  - User phải là thành viên ACCEPTED của project.
+  - `assignee` sẽ là `null` nếu task chưa được giao cho ai.
+- **Error Cases**:
+  - `403`: User không phải thành viên ACCEPTED của project.
+  - `404`: Task không tồn tại hoặc không thuộc project.
+
+### 4.4 Di chuyển Task (Drag & Drop Kanban)
 - **URL**: `POST /api/projects/{projectId}/tasks/{taskId}/move`
 - **Auth Required**: Yes (Thành viên ACCEPTED của dự án)
 - **Request Body**:
@@ -420,4 +460,89 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
   - `400`: Assignee không phải thành viên của project hoặc chưa ACCEPTED.
   - `403`: Assigner không phải thành viên ACCEPTED của project.
   - `404`: Task không tồn tại, không thuộc project, hoặc assignee không tồn tại.
+
+---
+
+## 5. Audit Logs (Activity Logs)
+
+> Ghi lại toàn bộ hoạt động trong project. Logs được ghi bất đồng bộ (async) để không ảnh hưởng hiệu năng.
+
+### 5.1 Lấy Activity Logs của Project
+- **URL**: `GET /api/projects/{projectId}/activity-logs`
+- **Auth Required**: Yes (Thành viên ACCEPTED của project)
+- **Query Params**:
+  - `page` (Integer, optional, default: 0): Số trang
+  - `size` (Integer, optional, default: 20, max: 100): Số logs mỗi trang
+- **Ví dụ**: `GET /api/projects/1/activity-logs?page=0&size=20`
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Lấy activity logs thành công",
+    "data": {
+        "content": [
+            {
+                "id": 1,
+                "user": {
+                    "id": 5,
+                    "username": "Nguyen Van A"
+                },
+                "actionType": "TASK_MOVED",
+                "entityType": "TASK",
+                "entityId": 10,
+                "description": "Moved task from TODO to IN_PROGRESS",
+                "metadata": {
+                    "fromStatus": "TODO",
+                    "toStatus": "IN_PROGRESS",
+                    "fromPosition": 0,
+                    "toPosition": 2
+                },
+                "createdAt": "2024-01-15T10:30:00"
+            }
+        ],
+        "pageable": {
+            "offset": 0,
+            "pageNumber": 0,
+            "pageSize": 20,
+            "paged": true,
+            "sort": {
+                "empty": false,
+                "sorted": true,
+                "unsorted": false
+            },
+            "unpaged": false
+        },
+        "totalElements": 150,
+        "totalPages": 8,
+        "size": 20,
+        "number": 0,
+        "numberOfElements": 1,
+        "first": true,
+        "last": false,
+        "empty": false,
+        "sort": {
+            "empty": false,
+            "sorted": true,
+            "unsorted": false
+        }
+    }
+}
+```
+- **Action Types**:
+  - `TASK_CREATED`: Tạo task mới
+  - `TASK_UPDATED`: Update task (title, description)
+  - `TASK_DELETED`: Xóa task
+  - `TASK_MOVED`: Di chuyển task trong Kanban
+  - `TASK_ASSIGNED`: Giao task cho user
+  - `PROJECT_CREATED`: Tạo project
+  - `PROJECT_DELETED`: Xóa project
+  - `MEMBER_INVITED`: Mời thành viên
+  - `MEMBER_JOINED`: Chấp nhận lời mời vào project
+- **Business Rules**:
+  - Logs được sắp xếp theo `createdAt` giảm dần (mới nhất trước).
+  - Pagination hỗ trợ tối đa 100 records mỗi request.
+  - Logs là immutable - không thể sửa/xóa sau khi tạo.
+- **Error Cases**:
+  - `403`: User không phải thành viên của project.
+  - `404`: Project không tồn tại.
 

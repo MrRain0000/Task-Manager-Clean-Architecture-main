@@ -10,7 +10,7 @@ import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.User;
 import com.example.task_management.domain.enums.InvitationStatus;
 import com.example.task_management.domain.enums.MemberRole;
-import com.example.task_management.interfaces.mappers.ProjectMapper;
+import com.example.task_management.application.mapper.ProjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

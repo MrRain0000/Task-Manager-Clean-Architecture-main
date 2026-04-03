@@ -12,7 +12,12 @@ import com.example.task_management.domain.entities.Task;
 import com.example.task_management.domain.entities.User;
 import com.example.task_management.domain.enums.InvitationStatus;
 import com.example.task_management.domain.factory.TaskFactory;
-import com.example.task_management.interfaces.mappers.TaskMapper;
+import com.example.task_management.application.usecases.activitylog.LogActivityUseCase;
+import com.example.task_management.application.DTOUsecase.request.LogActivityRequest;
+import com.example.task_management.domain.enums.ActionType;
+import com.example.task_management.domain.enums.EntityType;
+import java.util.Map;
+import com.example.task_management.application.mapper.TaskMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -28,18 +33,21 @@ public class CreateTaskUseCaseImpl implements CreateTaskUseCase {
         private final UserRepository userRepository;
         private final TaskRepository taskRepository;
         private final TaskMapper taskMapper;
+        private final LogActivityUseCase logActivityUseCase;
 
         public CreateTaskUseCaseImpl(
                         ProjectRepository projectRepository,
                         ProjectMemberRepository projectMemberRepository,
                         UserRepository userRepository,
                         TaskRepository taskRepository,
-                        TaskMapper taskMapper) {
+                        TaskMapper taskMapper,
+                        LogActivityUseCase logActivityUseCase) {
                 this.projectRepository = projectRepository;
                 this.projectMemberRepository = projectMemberRepository;
                 this.userRepository = userRepository;
                 this.taskRepository = taskRepository;
                 this.taskMapper = taskMapper;
+                this.logActivityUseCase = logActivityUseCase;
         }
 
         @Override
@@ -95,7 +103,17 @@ public class CreateTaskUseCaseImpl implements CreateTaskUseCase {
                 log.info("[CreateTask] Hoàn thành - taskId={}, projectId={}", 
                         savedTask.getId(), projectId);
 
-                // Trả về DTO sử dụng mapper
+                // Ghi log hoạt động (async, không block)
+                logActivityUseCase.logActivity(LogActivityRequest.builder()
+                        .projectId(projectId)
+                        .userId(user.getId())
+                        .actionType(ActionType.TASK_CREATED)
+                        .entityType(EntityType.TASK)
+                        .entityId(savedTask.getId())
+                        .description("Created task: " + savedTask.getTitle())
+                        .metadata(Map.of("title", savedTask.getTitle()))
+                        .build());
+
                 return taskMapper.toTaskResult(savedTask);
         }
 }

@@ -4,9 +4,12 @@ import com.example.task_management.interfaces.dto.request.task.AssignTaskRequest
 import com.example.task_management.interfaces.dto.request.task.CreateTaskRequest;
 import com.example.task_management.interfaces.dto.request.task.MoveTaskRequest;
 import com.example.task_management.interfaces.dto.response.ApiResponse;
+import com.example.task_management.interfaces.dto.response.task.TaskDetailResponse;
 import com.example.task_management.interfaces.dto.response.task.TaskResponse;
 import com.example.task_management.application.usecases.task.AssignTaskUseCase;
 import com.example.task_management.application.usecases.task.CreateTaskUseCase;
+import com.example.task_management.application.usecases.task.DeleteTaskUseCase;
+import com.example.task_management.application.usecases.task.GetTaskDetailUseCase;
 import com.example.task_management.application.usecases.task.GetTaskUseCase;
 import com.example.task_management.application.usecases.task.MoveTaskUseCase;
 import com.example.task_management.interfaces.mappers.TaskResponseMapper;
@@ -26,15 +29,21 @@ public class TaskController {
     private final GetTaskUseCase getTaskUseCase;
     private final MoveTaskUseCase moveTaskUseCase;
     private final AssignTaskUseCase assignTaskUseCase;
+    private final GetTaskDetailUseCase getTaskDetailUseCase;
+    private final DeleteTaskUseCase deleteTaskUseCase;
     private final TaskResponseMapper taskResponseMapper;
 
     public TaskController(CreateTaskUseCase createTaskUseCase, GetTaskUseCase getTaskUseCase, 
                           MoveTaskUseCase moveTaskUseCase, AssignTaskUseCase assignTaskUseCase,
+                          GetTaskDetailUseCase getTaskDetailUseCase,
+                          DeleteTaskUseCase deleteTaskUseCase,
                           TaskResponseMapper taskResponseMapper) {
         this.createTaskUseCase = createTaskUseCase;
         this.getTaskUseCase = getTaskUseCase;
         this.moveTaskUseCase = moveTaskUseCase;
         this.assignTaskUseCase = assignTaskUseCase;
+        this.getTaskDetailUseCase = getTaskDetailUseCase;
+        this.deleteTaskUseCase = deleteTaskUseCase;
         this.taskResponseMapper = taskResponseMapper;
     }
 
@@ -64,6 +73,29 @@ public class TaskController {
                 .map(taskResponseMapper::toTaskResponse)
                 .toList();
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách task thành công", tasks));
+    }
+
+    // GET /api/projects/{projectId}/tasks/{taskId}
+    @GetMapping("/{taskId}")
+    public ResponseEntity<ApiResponse<TaskDetailResponse>> getTaskDetail(
+            @PathVariable Long projectId,
+            @PathVariable Long taskId,
+            Authentication authentication) {
+
+        var result = getTaskDetailUseCase.getTaskDetail(projectId, taskId, authentication.getName());
+        TaskDetailResponse taskDetailResponse = taskResponseMapper.toTaskDetailResponse(result);
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy chi tiết task thành công", taskDetailResponse));
+    }
+
+    // DELETE /api/projects/{projectId}/tasks/{taskId}
+    @DeleteMapping("/{taskId}")
+    public ResponseEntity<ApiResponse<Void>> deleteTask(
+            @PathVariable Long projectId,
+            @PathVariable Long taskId,
+            Authentication authentication) {
+
+        deleteTaskUseCase.deleteTask(projectId, taskId, authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Xóa task thành công", null));
     }
 
     // POST /api/projects/{projectId}/tasks/{taskId}/move

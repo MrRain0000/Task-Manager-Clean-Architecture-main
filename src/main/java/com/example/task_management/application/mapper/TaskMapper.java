@@ -1,4 +1,4 @@
-package com.example.task_management.interfaces.mappers;
+package com.example.task_management.application.mapper;
 
 import com.example.task_management.application.DTOUsecase.response.task.TaskResult;
 import com.example.task_management.domain.entities.Task;

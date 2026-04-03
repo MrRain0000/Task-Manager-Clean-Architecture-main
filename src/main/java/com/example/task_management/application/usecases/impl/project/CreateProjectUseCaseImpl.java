@@ -11,7 +11,12 @@ import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.User;
 import com.example.task_management.domain.factory.ProjectFactory;
 import com.example.task_management.domain.factory.ProjectMemberFactory;
-import com.example.task_management.interfaces.mappers.ProjectMapper;
+import com.example.task_management.application.usecases.activitylog.LogActivityUseCase;
+import com.example.task_management.application.DTOUsecase.request.LogActivityRequest;
+import com.example.task_management.domain.enums.ActionType;
+import com.example.task_management.domain.enums.EntityType;
+import java.util.Map;
+import com.example.task_management.application.mapper.ProjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,16 +27,19 @@ public class CreateProjectUseCaseImpl implements CreateProjectUseCase {
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
     private final ProjectMapper projectMapper;
+    private final LogActivityUseCase logActivityUseCase;
 
     public CreateProjectUseCaseImpl(
             ProjectRepository projectRepository,
             ProjectMemberRepository projectMemberRepository,
             UserRepository userRepository,
-            ProjectMapper projectMapper) {
+            ProjectMapper projectMapper,
+            LogActivityUseCase logActivityUseCase) {
         this.projectRepository = projectRepository;
         this.projectMemberRepository = projectMemberRepository;
         this.userRepository = userRepository;
         this.projectMapper = projectMapper;
+        this.logActivityUseCase = logActivityUseCase;
     }
 
     @Override
@@ -52,6 +60,17 @@ public class CreateProjectUseCaseImpl implements CreateProjectUseCase {
         ProjectMember member = ProjectMemberFactory.createOwner(savedProject.getId(), owner.getId());
 
         projectMemberRepository.save(member);
+
+        // Ghi log hoạt động (async)
+        logActivityUseCase.logActivity(LogActivityRequest.builder()
+                .projectId(savedProject.getId())
+                .userId(owner.getId())
+                .actionType(ActionType.PROJECT_CREATED)
+                .entityType(EntityType.PROJECT)
+                .entityId(savedProject.getId())
+                .description("Created project: " + savedProject.getName())
+                .metadata(Map.of("projectName", savedProject.getName()))
+                .build());
 
         // 4. Trả về Response DTO ra ngoài thông qua Mapper
         return projectMapper.toProjectResponse(savedProject);

@@ -1,9 +1,11 @@
 package com.example.task_management.application.usecases.impl.project;
 
+import com.example.task_management.application.DTOUsecase.response.project.ProjectListResult;
 import com.example.task_management.application.DTOUsecase.response.project.ProjectResult;
 import com.example.task_management.application.repositories.ProjectMemberRepository;
 import com.example.task_management.application.repositories.ProjectRepository;
 import com.example.task_management.application.repositories.UserRepository;
+import com.example.task_management.application.mapper.ProjectMapper;
 import com.example.task_management.application.usecases.project.GetProjectListUseCase;
 import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.User;
@@ -17,51 +19,56 @@ import java.util.stream.Collectors;
 @Service
 public class GetProjectListUseCaseImpl implements GetProjectListUseCase {
 
-    private final ProjectRepository projectRepository;
-    private final ProjectMemberRepository projectMemberRepository;
-    private final UserRepository userRepository;
+        private final ProjectRepository projectRepository;
+        private final ProjectMemberRepository projectMemberRepository;
+        private final UserRepository userRepository;
+        private final ProjectMapper projectMapper;
 
-    public GetProjectListUseCaseImpl(
-            ProjectRepository projectRepository,
-            ProjectMemberRepository projectMemberRepository,
-            UserRepository userRepository) {
-        this.projectRepository = projectRepository;
-        this.projectMemberRepository = projectMemberRepository;
-        this.userRepository = userRepository;
-    }
+        public GetProjectListUseCaseImpl(
+                        ProjectRepository projectRepository,
+                        ProjectMemberRepository projectMemberRepository,
+                        UserRepository userRepository,
+                        ProjectMapper projectMapper) {
+                this.projectRepository = projectRepository;
+                this.projectMemberRepository = projectMemberRepository;
+                this.userRepository = userRepository;
+                this.projectMapper = projectMapper;
+        }
 
-    @Override
-    public List<ProjectResult> getMyProjects(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng hiện tại trong hệ thống."));
+        @Override
+        public ProjectListResult getMyProjects(String email) {
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                                "Không tìm thấy người dùng hiện tại trong hệ thống."));
 
-        List<ProjectMember> acceptedMemberships = projectMemberRepository
-                .findAllByUserIdAndInvitationStatus(user.getId(), InvitationStatus.ACCEPTED);
+                List<ProjectMember> acceptedMemberships = projectMemberRepository
+                                .findAllByUserIdAndInvitationStatus(user.getId(), InvitationStatus.ACCEPTED);
 
-        return acceptedMemberships.stream()
-                .map(membership -> projectRepository.findById(membership.getProjectId()).orElse(null))
-                .filter(Objects::nonNull)
-                .map(project -> ProjectResult.builder()
-                        .id(project.getId())
-                        .name(project.getName())
-                        .description(project.getDescription())
-                        .ownerId(project.getOwnerId())
-                        .build())
-                .collect(Collectors.toList());
-    }
+                List<ProjectResult> projects = acceptedMemberships.stream()
+                                .map(membership -> projectRepository.findById(membership.getProjectId()).orElse(null))
+                                .filter(Objects::nonNull)
+                                .map(projectMapper::toProjectResponse)
+                                .collect(Collectors.toList());
 
-    @Override
-    public List<ProjectResult> getProjectsByOwner(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng hiện tại trong hệ thống."));
+                return ProjectListResult.builder()
+                                .projects(projects)
+                                .totalProjects(projects.size())
+                                .build();
+        }
 
-        return projectRepository.findAllByOwnerId(user.getId()).stream()
-                .map(project -> ProjectResult.builder()
-                        .id(project.getId())
-                        .name(project.getName())
-                        .description(project.getDescription())
-                        .ownerId(project.getOwnerId())
-                        .build())
-                .collect(Collectors.toList());
-    }
+        @Override
+        public ProjectListResult getProjectsByOwner(String email) {
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                                "Không tìm thấy người dùng hiện tại trong hệ thống."));
+
+                List<ProjectResult> projects = projectRepository.findAllByOwnerId(user.getId()).stream()
+                                .map(projectMapper::toProjectResponse)
+                                .collect(Collectors.toList());
+
+                return ProjectListResult.builder()
+                                .projects(projects)
+                                .totalProjects(projects.size())
+                                .build();
+        }
 }
