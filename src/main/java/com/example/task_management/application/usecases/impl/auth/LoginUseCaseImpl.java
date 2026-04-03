@@ -2,6 +2,7 @@ package com.example.task_management.application.usecases.impl.auth;
 
 import com.example.task_management.interfaces.dto.request.auth.LoginRequest;
 import com.example.task_management.application.DTOUsecase.response.auth.AuthResult;
+import com.example.task_management.application.mapper.UserMapper;
 import com.example.task_management.application.repositories.UserRepository;
 import com.example.task_management.application.usecases.auth.LoginUseCase;
 import com.example.task_management.domain.entities.User;
@@ -16,13 +17,16 @@ public class LoginUseCaseImpl implements LoginUseCase {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserMapper userMapper;
 
     public LoginUseCaseImpl(UserRepository userRepository,
                             PasswordEncoder passwordEncoder,
-                            JwtTokenProvider jwtTokenProvider) {
+                            JwtTokenProvider jwtTokenProvider,
+                            UserMapper userMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -45,10 +49,6 @@ public class LoginUseCaseImpl implements LoginUseCase {
         String token = jwtTokenProvider.generateToken(user.getEmail());
 
         // 5. Trả về token và trạng thái xác minh
-        return AuthResult.builder()
-                .accessToken(token)
-                .tokenType("Bearer")
-                .verified(user.isVerified())
-                .build();
+        return userMapper.toAuthResult(user, token);
     }
 }

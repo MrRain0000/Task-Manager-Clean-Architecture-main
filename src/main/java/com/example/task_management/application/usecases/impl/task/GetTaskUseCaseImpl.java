@@ -5,6 +5,7 @@ import com.example.task_management.application.repositories.ProjectMemberReposit
 import com.example.task_management.application.repositories.ProjectRepository;
 import com.example.task_management.application.repositories.TaskRepository;
 import com.example.task_management.application.repositories.UserRepository;
+import com.example.task_management.application.mapper.TaskMapper;
 import com.example.task_management.application.usecases.task.GetTaskUseCase;
 import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.Task;
@@ -23,16 +24,19 @@ public class GetTaskUseCaseImpl implements GetTaskUseCase {
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
+    private final TaskMapper taskMapper;
 
     public GetTaskUseCaseImpl(
             ProjectRepository projectRepository,
             ProjectMemberRepository projectMemberRepository,
             UserRepository userRepository,
-            TaskRepository taskRepository) {
+            TaskRepository taskRepository,
+            TaskMapper taskMapper) {
         this.projectRepository = projectRepository;
         this.projectMemberRepository = projectMemberRepository;
         this.userRepository = userRepository;
         this.taskRepository = taskRepository;
+        this.taskMapper = taskMapper;
     }
 
     @Override
@@ -74,17 +78,9 @@ public class GetTaskUseCaseImpl implements GetTaskUseCase {
             tasks = taskRepository.findAllByProjectIdAndStatusOrderByPositionAsc(projectId, taskStatus);
         }
 
-        // Map → DTO
+        // Map → DTO (qua mapper)
         return tasks.stream()
-                .map(task -> TaskResult.builder()
-                        .id(task.getId())
-                        .title(task.getTitle())
-                        .description(task.getDescription())
-                        .status(task.getStatus())
-                        .projectId(task.getProjectId())
-                        .assigneeId(task.getAssigneeId())
-                        .position(task.getPosition())
-                        .build())
+                .map(taskMapper::toTaskResult)
                 .toList();
     }
 }

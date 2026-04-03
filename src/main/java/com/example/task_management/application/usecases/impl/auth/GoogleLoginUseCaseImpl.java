@@ -3,6 +3,7 @@ package com.example.task_management.application.usecases.impl.auth;
 import com.example.task_management.interfaces.dto.request.auth.GoogleLoginRequest;
 import com.example.task_management.interfaces.dto.response.auth.GoogleUserInfo;
 import com.example.task_management.application.DTOUsecase.response.auth.AuthResult;
+import com.example.task_management.application.mapper.UserMapper;
 import com.example.task_management.application.repositories.OAuth2Repository;
 import com.example.task_management.application.repositories.UserRepository;
 import com.example.task_management.application.usecases.auth.GoogleLoginUseCase;
@@ -20,16 +21,19 @@ public class GoogleLoginUseCaseImpl implements GoogleLoginUseCase {
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
     public GoogleLoginUseCaseImpl(
             OAuth2Repository oAuth2Repository,
             UserRepository userRepository,
             JwtTokenProvider jwtTokenProvider,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            UserMapper userMapper) {
         this.oAuth2Repository = oAuth2Repository;
         this.userRepository = userRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.passwordEncoder = passwordEncoder;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -64,9 +68,6 @@ public class GoogleLoginUseCaseImpl implements GoogleLoginUseCase {
         // 3. Tạo Token nội bộ hệ thống (JWT)
         String accessToken = jwtTokenProvider.generateToken(user.getEmail());
 
-        return AuthResult.builder()
-                .accessToken(accessToken)
-                .tokenType("Bearer")
-                .build();
+        return userMapper.toAuthResult(user, accessToken);
     }
 }

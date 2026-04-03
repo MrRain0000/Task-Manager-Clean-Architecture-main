@@ -10,7 +10,12 @@ import com.example.task_management.application.usecases.task.AssignTaskUseCase;
 import com.example.task_management.domain.entities.Task;
 import com.example.task_management.domain.entities.User;
 import com.example.task_management.domain.services.Task.TaskAssignerService;
-import com.example.task_management.interfaces.mappers.TaskMapper;
+import com.example.task_management.application.usecases.activitylog.LogActivityUseCase;
+import com.example.task_management.application.DTOUsecase.request.LogActivityRequest;
+import com.example.task_management.domain.enums.ActionType;
+import com.example.task_management.domain.enums.EntityType;
+import java.util.Map;
+import com.example.task_management.application.mapper.TaskMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -26,13 +31,15 @@ public class AssignTaskUseCaseImpl implements AssignTaskUseCase {
     private final UserRepository userRepository;
     private final TaskMapper taskMapper;
     private final TaskAssignerService taskAssignerService;
+    private final LogActivityUseCase logActivityUseCase;
 
-    public AssignTaskUseCaseImpl(TaskQueryRepository taskQueryRepository, TaskCommandRepository taskCommandRepository, UserRepository userRepository, ProjectMemberRepository projectMemberRepository, TaskMapper taskMapper, TaskAssignerService taskAssignerService) {
+    public AssignTaskUseCaseImpl(TaskQueryRepository taskQueryRepository, TaskCommandRepository taskCommandRepository, UserRepository userRepository, ProjectMemberRepository projectMemberRepository, TaskMapper taskMapper, TaskAssignerService taskAssignerService, LogActivityUseCase logActivityUseCase) {
         this.taskQueryRepository = taskQueryRepository;
         this.taskCommandRepository = taskCommandRepository;
         this.userRepository = userRepository;
         this.taskMapper = taskMapper;
         this.taskAssignerService = taskAssignerService;
+        this.logActivityUseCase = logActivityUseCase;
     }
 
     @Override
@@ -83,6 +90,23 @@ public class AssignTaskUseCaseImpl implements AssignTaskUseCase {
         // 7. Save và return
         Task savedTask = taskCommandRepository.save(task);
         log.info("[AssignTask] Hoàn thành - taskId={}, assigneeId={}", savedTask.getId(), assigneeId);
+        
+        // Ghi log hoạt động (async)
+        String assigneeName = assigneeId != null ? 
+            userRepository.findById(assigneeId).map(User::getUsername).orElse("Unknown") : 
+            "Unassigned";
+        logActivityUseCase.logActivity(LogActivityRequest.builder()
+                .projectId(projectId)
+                .userId(assigner.getId())
+                .actionType(ActionType.TASK_ASSIGNED)
+                .entityType(EntityType.TASK)
+                .entityId(taskId)
+                .description(assigneeId != null ? "Assigned task to " + assigneeName : "Unassigned task")
+                .metadata(Map.of(
+                        "assigneeId", assigneeId != null ? assigneeId : "null",
+                        "assigneeName", assigneeName
+                ))
+                .build());
         
         return taskMapper.toTaskResult(savedTask);
     }

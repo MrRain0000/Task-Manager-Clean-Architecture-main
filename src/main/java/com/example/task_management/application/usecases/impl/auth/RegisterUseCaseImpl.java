@@ -8,7 +8,7 @@ import com.example.task_management.application.usecases.auth.RegisterUseCase;
 import com.example.task_management.domain.entities.User;
 import com.example.task_management.domain.entities.VerificationToken;
 import com.example.task_management.domain.services.Email.EmailService;
-import com.example.task_management.interfaces.mappers.UserMapper;
+import com.example.task_management.application.mapper.UserMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -75,7 +75,7 @@ public class RegisterUseCaseImpl implements RegisterUseCase {
         }
 
         // 6. Convert → DTO response
-        RegisterResult response = userMapper.toRegisterResponse(savedUser);
+        RegisterResult response = userMapper.toRegisterResult(savedUser);
         log.info("[Register] Hoàn thành đăng ký");
         return response;
     }

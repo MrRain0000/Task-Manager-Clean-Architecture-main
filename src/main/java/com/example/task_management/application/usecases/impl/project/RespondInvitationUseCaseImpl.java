@@ -4,6 +4,11 @@ import com.example.task_management.interfaces.dto.request.project.RespondInvitat
 import com.example.task_management.application.repositories.ProjectMemberRepository;
 import com.example.task_management.application.repositories.UserRepository;
 import com.example.task_management.application.usecases.project.RespondInvitationUseCase;
+import com.example.task_management.application.usecases.activitylog.LogActivityUseCase;
+import com.example.task_management.application.DTOUsecase.request.LogActivityRequest;
+import com.example.task_management.domain.enums.ActionType;
+import com.example.task_management.domain.enums.EntityType;
+import java.util.Map;
 import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.User;
 import com.example.task_management.domain.enums.InvitationStatus;
@@ -15,10 +20,12 @@ public class RespondInvitationUseCaseImpl implements RespondInvitationUseCase {
 
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
+    private final LogActivityUseCase logActivityUseCase;
 
-    public RespondInvitationUseCaseImpl(ProjectMemberRepository projectMemberRepository, UserRepository userRepository) {
+    public RespondInvitationUseCaseImpl(ProjectMemberRepository projectMemberRepository, UserRepository userRepository, LogActivityUseCase logActivityUseCase) {
         this.projectMemberRepository = projectMemberRepository;
         this.userRepository = userRepository;
+        this.logActivityUseCase = logActivityUseCase;
     }
 
     @Override
@@ -41,6 +48,21 @@ public class RespondInvitationUseCaseImpl implements RespondInvitationUseCase {
         if (Boolean.TRUE.equals(request.getIsAccept())) {
             invitation.setInvitationStatus(InvitationStatus.ACCEPTED);
             projectMemberRepository.save(invitation);
+
+            // Ghi log khi user chấp nhận lời mời
+            logActivityUseCase.logActivity(LogActivityRequest.builder()
+                    .projectId(projectId)
+                    .userId(user.getId())
+                    .actionType(ActionType.MEMBER_JOINED)
+                    .entityType(EntityType.MEMBER)
+                    .entityId(user.getId())
+                    .description(user.getUsername() + " joined the project")
+                    .metadata(Map.of(
+                            "userId", user.getId(),
+                            "username", user.getUsername(),
+                            "email", user.getEmail()
+                    ))
+                    .build());
         } else {
             invitation.setInvitationStatus(InvitationStatus.REJECTED);
             projectMemberRepository.save(invitation);

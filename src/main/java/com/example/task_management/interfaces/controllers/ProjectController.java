@@ -1,6 +1,8 @@
 package com.example.task_management.interfaces.controllers;
 
 import com.example.task_management.application.DTOUsecase.response.project.ProjectResult;
+import com.example.task_management.application.DTOUsecase.response.project.ProjectListResult;
+import com.example.task_management.interfaces.dto.response.project.ProjectListResponse;
 import com.example.task_management.interfaces.dto.request.project.CreateProjectRequest;
 import com.example.task_management.interfaces.dto.response.ApiResponse;
 import com.example.task_management.interfaces.dto.response.project.ProjectResponse;
@@ -39,17 +41,21 @@ public class ProjectController {
 
         // API: Lấy danh sách dự án
         @GetMapping
-        public ResponseEntity<ApiResponse<List<ProjectResponse>>> getProjects(Authentication authentication) {
+        public ResponseEntity<ApiResponse<ProjectListResponse>> getProjects(Authentication authentication) {
                 String currentUserEmail = authentication.getName();
 
-                List<ProjectResult> results = getProjectListUseCase.getMyProjects(currentUserEmail);
-                List<ProjectResponse> responseData = results.stream()
+                ProjectListResult result = getProjectListUseCase.getMyProjects(currentUserEmail);
+                List<ProjectResponse> projectResponses = result.getProjects().stream()
                                 .map(projectResponseMapper::toProjectResponse)
                                 .collect(Collectors.toList());
 
+                ProjectListResponse responseData = ProjectListResponse.builder()
+                                .projects(projectResponses)
+                                .totalProjects(result.getTotalProjects())
+                                .build();
+
                 return ResponseEntity.status(HttpStatus.OK)
-                                .body(ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách dự án thành công",
-                                                responseData));
+                                .body(ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách dự án thành công", responseData));
         }
 
         // API: Tạo dự án mới
