@@ -4,6 +4,7 @@ import com.example.task_management.application.repositories.ProjectMemberReposit
 import com.example.task_management.application.repositories.ProjectRepository;
 import com.example.task_management.application.repositories.TaskRepository;
 import com.example.task_management.application.repositories.UserRepository;
+import com.example.task_management.application.usecases.activitylog.LogActivityUseCase;
 import com.example.task_management.domain.entities.Project;
 import com.example.task_management.domain.entities.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,9 @@ class DeleteProjectUseCaseImplTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private LogActivityUseCase logActivityUseCase;
+
     @InjectMocks
     private DeleteProjectUseCaseImpl deleteProjectUseCase;
 
@@ -56,6 +60,7 @@ class DeleteProjectUseCaseImplTest {
 
         project = new Project();
         project.setId(projectId);
+        project.setName("Test Project");
         project.setOwnerId(owner.getId());
     }
 

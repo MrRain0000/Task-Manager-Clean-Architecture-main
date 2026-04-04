@@ -4,11 +4,14 @@ import com.example.task_management.application.DTOUsecase.response.project.Proje
 import com.example.task_management.application.DTOUsecase.response.project.ProjectListResult;
 import com.example.task_management.interfaces.dto.response.project.ProjectListResponse;
 import com.example.task_management.interfaces.dto.request.project.CreateProjectRequest;
+import com.example.task_management.interfaces.dto.request.project.UpdateProjectRequest;
 import com.example.task_management.interfaces.dto.response.ApiResponse;
 import com.example.task_management.interfaces.dto.response.project.ProjectResponse;
 import com.example.task_management.application.usecases.project.CreateProjectUseCase;
 import com.example.task_management.application.usecases.project.DeleteProjectUseCase;
 import com.example.task_management.application.usecases.project.GetProjectListUseCase;
+import com.example.task_management.application.usecases.project.UpdateProjectUseCase;
+import com.example.task_management.interfaces.mappers.ProjectRequestMapper;
 import com.example.task_management.interfaces.mappers.ProjectResponseMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -26,16 +29,22 @@ public class ProjectController {
         private final CreateProjectUseCase createProjectUseCase;
         private final DeleteProjectUseCase deleteProjectUseCase;
         private final GetProjectListUseCase getProjectListUseCase;
+        private final UpdateProjectUseCase updateProjectUseCase;
+        private final ProjectRequestMapper projectRequestMapper;
         private final ProjectResponseMapper projectResponseMapper;
 
         public ProjectController(
                         CreateProjectUseCase createProjectUseCase,
                         DeleteProjectUseCase deleteProjectUseCase,
                         GetProjectListUseCase getProjectListUseCase,
+                        UpdateProjectUseCase updateProjectUseCase,
+                        ProjectRequestMapper projectRequestMapper,
                         ProjectResponseMapper projectResponseMapper) {
                 this.createProjectUseCase = createProjectUseCase;
                 this.deleteProjectUseCase = deleteProjectUseCase;
                 this.getProjectListUseCase = getProjectListUseCase;
+                this.updateProjectUseCase = updateProjectUseCase;
+                this.projectRequestMapper = projectRequestMapper;
                 this.projectResponseMapper = projectResponseMapper;
         }
 
@@ -90,5 +99,25 @@ public class ProjectController {
 
                 return ResponseEntity.status(HttpStatus.OK)
                                 .body(ApiResponse.success(HttpStatus.OK.value(), "Dự án đã được xóa thành công", null));
+        }
+
+        // API: Cập nhật dự án
+        @PutMapping("/{projectId}")
+        public ResponseEntity<ApiResponse<ProjectResponse>> updateProject(
+                        @PathVariable Long projectId,
+                        @Valid @RequestBody UpdateProjectRequest request,
+                        Authentication authentication) {
+
+                String currentUserEmail = authentication.getName();
+
+                ProjectResult result = updateProjectUseCase.updateProject(
+                                projectId,
+                                projectRequestMapper.toUpdateProjectCommand(request),
+                                currentUserEmail);
+                ProjectResponse responseData = projectResponseMapper.toProjectResponse(result);
+
+                return ResponseEntity.status(HttpStatus.OK)
+                                .body(ApiResponse.success(HttpStatus.OK.value(), "Dự án đã được cập nhật thành công",
+                                                responseData));
         }
 }

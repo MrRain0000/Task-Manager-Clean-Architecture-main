@@ -3,6 +3,7 @@ package com.example.task_management.application.usecases.impl.project;
 import com.example.task_management.interfaces.dto.request.project.RespondInvitationRequest;
 import com.example.task_management.application.repositories.ProjectMemberRepository;
 import com.example.task_management.application.repositories.UserRepository;
+import com.example.task_management.application.usecases.activitylog.LogActivityUseCase;
 import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.User;
 import com.example.task_management.domain.enums.InvitationStatus;
@@ -28,6 +29,9 @@ class RespondInvitationUseCaseImplTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private LogActivityUseCase logActivityUseCase;
+
     @InjectMocks
     private RespondInvitationUseCaseImpl respondInvitationUseCase;
 
@@ -43,6 +47,7 @@ class RespondInvitationUseCaseImplTest {
         invitee = new User();
         invitee.setId(20L);
         invitee.setEmail(inviteeEmail);
+        invitee.setUsername("member");
 
         invitation = new ProjectMember();
         invitation.setProjectId(projectId);

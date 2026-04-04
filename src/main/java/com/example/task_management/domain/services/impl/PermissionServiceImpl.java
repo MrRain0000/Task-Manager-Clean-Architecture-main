@@ -6,6 +6,7 @@ import com.example.task_management.application.usecases.impl.task.MoveTaskUseCas
 
 import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.User;
+import com.example.task_management.domain.entities.Project;
 import com.example.task_management.domain.enums.InvitationStatus;
 import com.example.task_management.domain.services.PermissionService;
 import org.slf4j.Logger;
@@ -47,5 +48,10 @@ public class PermissionServiceImpl implements PermissionService {
         }
         log.debug("[MoveTask] User permission OK");
         return user.getId();
+    }
+
+    @Override
+    public boolean canUpdateProject(Project project, User user) {
+        return project.getOwnerId().equals(user.getId());
     }
 }

@@ -179,7 +179,38 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 ```
 - **Note**: Người tạo tự động trở thành `OWNER` và Status `ACCEPTED`.
 
-### 2.3 Xóa dự án
+### 2.3 Cập nhật dự án
+- **URL**: `PUT /api/projects/{projectId}`
+- **Auth Required**: Yes (Yêu cầu phải là `OWNER` của dự án)
+- **Body** (JSON):
+```json
+{
+    "name": "Dự án Thiết kế Website - Updated",
+    "description": "Mô tả cập nhật cho dự án"
+}
+```
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Dự án đã được cập nhật thành công",
+    "data": {
+        "id": 1,
+        "name": "Dự án Thiết kế Website - Updated",
+        "description": "Mô tả cập nhật cho dự án",
+        "ownerId": 1
+    }
+}
+```
+- **Business Rules**:
+  - Chỉ `OWNER` của dự án mới có quyền cập nhật.
+  - Tên và mô tả sẽ được normalize (trim whitespace, xử lý ký tự đặc biệt) trước khi lưu.
+  - `PROJECT_UPDATED` activity log sẽ được tạo tự động.
+- **Error Cases**:
+  - `403`: User không phải `OWNER` của dự án.
+  - `404`: Dự án không tồn tại.
+
+### 2.4 Xóa dự án
 - **URL**: `DELETE /api/projects/{projectId}`
 - **Auth Required**: Yes (Yêu cầu phải là `OWNER` của dự án)
 - **Response** (200 OK):

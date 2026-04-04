@@ -4,6 +4,7 @@ import com.example.task_management.interfaces.dto.request.project.InviteMemberRe
 import com.example.task_management.application.repositories.ProjectMemberRepository;
 import com.example.task_management.application.repositories.ProjectRepository;
 import com.example.task_management.application.repositories.UserRepository;
+import com.example.task_management.application.usecases.activitylog.LogActivityUseCase;
 import com.example.task_management.domain.entities.Project;
 import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.User;
@@ -34,6 +35,9 @@ class InviteMemberUseCaseImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private LogActivityUseCase logActivityUseCase;
 
     @InjectMocks
     private InviteMemberUseCaseImpl inviteMemberUseCase;

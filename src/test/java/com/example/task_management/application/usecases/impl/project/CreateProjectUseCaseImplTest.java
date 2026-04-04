@@ -5,6 +5,7 @@ import com.example.task_management.interfaces.dto.request.project.CreateProjectR
 import com.example.task_management.application.repositories.ProjectMemberRepository;
 import com.example.task_management.application.repositories.ProjectRepository;
 import com.example.task_management.application.repositories.UserRepository;
+import com.example.task_management.application.usecases.activitylog.LogActivityUseCase;
 import com.example.task_management.domain.entities.Project;
 import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.User;
@@ -39,6 +40,9 @@ class CreateProjectUseCaseImplTest {
 
     @Mock
     private ProjectMapper projectMapper;
+
+    @Mock
+    private LogActivityUseCase logActivityUseCase;
 
     @InjectMocks
     private CreateProjectUseCaseImpl createProjectUseCase;

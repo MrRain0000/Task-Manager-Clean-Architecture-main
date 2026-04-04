@@ -68,6 +68,12 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), null);
     }
 
+    // Xử lý lỗi business validation cho Project (400)
+    @ExceptionHandler(ProjectValidationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleProjectValidation(ProjectValidationException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+    }
+
     // Xử lý các lỗi hệ thống không mong đợi
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGeneral(Exception ex) {
