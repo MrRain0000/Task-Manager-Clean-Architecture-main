@@ -3,9 +3,9 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:task_management}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:task_management_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: ${MYSQLUSER:root}
-    password: ${MYSQLPASSWORD:123456}
+    password: ${MYSQLPASSWORD:0000}
 
     hikari:
       connection-timeout: 20000
@@ -30,7 +30,9 @@ jwt:
   expiration-ms: 86400000
 
 app:
+
   email:
+    resend-api-key: re_NwoLaupJ_AMKUoCCJ5VoaaDnJMeeGJraW
     from: verification@nguyenducthinh0.id.vn
   frontend:
     url: http://localhost:5173
@@ -38,4 +40,3 @@ app:
 google:
   client-id: ${GOOGLE_CLIENT_ID:940090065833-lucvnncjjmqosi7cn7d4p3bg93ap4br3.apps.googleusercontent.com}
 
-RESEND_API_KEY: re_SsSSkv4B_MwQk7E3kYTbagdj65fbvz2N7
