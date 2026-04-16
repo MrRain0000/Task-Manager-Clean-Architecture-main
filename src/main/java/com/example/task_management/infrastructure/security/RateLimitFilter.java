@@ -32,7 +32,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         // Sliding window: Giới hạn 100 requests / 1 phút cho mỗi IP
         Bandwidth limit = Bandwidth.builder()
                 .capacity(100)
-                .refillGreedy(100, Duration.ofMinutes(1))
+                .refillGreedy(10, Duration.ofMinutes(1))
                 .build();
         return Bucket.builder()
                 .addLimit(limit)

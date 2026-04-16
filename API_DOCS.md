@@ -411,41 +411,48 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 }
 ```
 
-- **Response** (200 OK) - Smart Response:
+- **Response** (200 OK) - Incremental Sync:
+
+  Response trả về map của các **columns bị ảnh hưởng** thay vì toàn bộ project.
 
   - **Trường hợp 1: Move trong cùng column** (e.g., TODO→TODO)
-    - Chỉ trả về các tasks bị thay đổi position (tiết kiệm bandwidth)
     ```json
     {
         "status": 200,
         "message": "Di chuyển task thành công",
-        "data": [
-            { "id": 2, "title": "Task B", "status": "TODO", "position": 0 },
-            { "id": 3, "title": "Task C", "status": "TODO", "position": 1 },
-            { "id": 1, "title": "Task A", "status": "TODO", "position": 2 }
-        ]
+        "data": {
+            "TODO": [
+                { "id": 2, "title": "Task B", "status": "TODO", "position": 0 },
+                { "id": 3, "title": "Task C", "status": "TODO", "position": 1 },
+                { "id": 1, "title": "Task A", "status": "TODO", "position": 2 }
+            ]
+        }
     }
     ```
-    → Frontend merge vào state hiện tại
+    → Frontend chỉ cần update column `TODO`
 
   - **Trường hợp 2: Move sang column khác** (e.g., TODO→IN_PROGRESS)
-    - Trả về tất cả tasks trong project (để sync cả 2 columns)
     ```json
     {
         "status": 200,
         "message": "Di chuyển task thành công",
-        "data": [
-            { "id": 2, "title": "Task B", "status": "TODO", "position": 0 },
-            { "id": 1, "title": "Task A", "status": "IN_PROGRESS", "position": 0 },
-            { "id": 3, "title": "Task C", "status": "IN_PROGRESS", "position": 1 }
-        ]
+        "data": {
+            "TODO": [
+                { "id": 2, "title": "Task B", "status": "TODO", "position": 0 }
+            ],
+            "IN_PROGRESS": [
+                { "id": 3, "title": "Task C", "status": "IN_PROGRESS", "position": 0 },
+                { "id": 1, "title": "Task A", "status": "IN_PROGRESS", "position": 1 }
+            ]
+        }
     }
     ```
-    → Frontend replace toàn bộ state
+    → Frontend update cả 2 columns `TODO` và `IN_PROGRESS`
 
 - **Notes**:
-  - API tự động phát hiện loại move và trả response phù hợp
-  - Frontend dựa vào số lượng tasks trả về để quyết định merge hay replace
+  - **Bulk Update**: Positions được update trực tiếp trong DB bằng JPQL, không load entity vào memory
+  - **Incremental Sync**: Chỉ query lại columns bị ảnh hưởng, không query toàn bộ project
+  - Frontend dùng key của map để biết columns nào cần update
   - Không cần gọi thêm API GET /tasks sau khi move
 - **Business Rules**:
   - Task phải tồn tại và thuộc project được chỉ định.

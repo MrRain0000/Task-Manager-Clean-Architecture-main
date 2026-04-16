@@ -9,6 +9,7 @@ import com.example.task_management.application.DTOUsecase.request.LogActivityReq
 import com.example.task_management.domain.enums.ActionType;
 import com.example.task_management.domain.enums.EntityType;
 import java.util.Map;
+import java.util.HashMap;
 import com.example.task_management.domain.services.Task.TaskStatusParser;
 import com.example.task_management.interfaces.dto.request.task.MoveTaskRequest;
 import com.example.task_management.application.repositories.task.TaskCommandRepository;
@@ -19,15 +20,25 @@ import com.example.task_management.domain.entities.Task;
 
 import com.example.task_management.domain.enums.TaskStatus;
 import com.example.task_management.domain.services.Task.TaskOrderService;
-import com.example.task_management.application.mapper.TaskMapper;
+import com.example.task_management.infrastructure.persistence.jparepositories.TaskJpaRepository;
+import com.example.task_management.infrastructure.persistence.jpaentities.TaskJpaEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
+/**
+ * Implementation của MoveTaskUseCase với Bulk Update + Incremental Sync.
+ *
+ * Flow mới:
+ * 1. Bulk update positions trực tiếp trong DB (không load entity)
+ * 2. Chỉ save task được move
+ * 3. Query lại các affected columns
+ * 4. Trả về affectedColumns map (không trả toàn bộ project tasks)
+ */
 @Service
 public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
 
@@ -36,19 +47,25 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
     private final TaskQueryRepository taskQueryRepository;
     private final TaskCommandRepository taskCommandRepository;
     private final TaskOrderService taskOrderService;
-    private final TaskMapper taskMapper;
     private final TaskStatusParser taskStatusParser;
     private final PermissionService permissionService;
     private final LogActivityUseCase logActivityUseCase;
+    private final TaskJpaRepository taskJpaRepository;
 
-    public MoveTaskUseCaseImpl(TaskQueryRepository taskQueryRepository, TaskCommandRepository taskCommandRepository, TaskOrderService taskOrderService, TaskMapper taskMapper, TaskStatusParser taskStatusParser, PermissionService permissionService, LogActivityUseCase logActivityUseCase) {
+    public MoveTaskUseCaseImpl(TaskQueryRepository taskQueryRepository,
+                                TaskCommandRepository taskCommandRepository,
+                                TaskOrderService taskOrderService,
+                                TaskStatusParser taskStatusParser,
+                                PermissionService permissionService,
+                                LogActivityUseCase logActivityUseCase,
+                                TaskJpaRepository taskJpaRepository) {
         this.taskQueryRepository = taskQueryRepository;
         this.taskCommandRepository = taskCommandRepository;
         this.taskOrderService = taskOrderService;
-        this.taskMapper = taskMapper;
         this.taskStatusParser = taskStatusParser;
         this.permissionService = permissionService;
         this.logActivityUseCase = logActivityUseCase;
+        this.taskJpaRepository = taskJpaRepository;
     }
 
     @Override
@@ -57,7 +74,7 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
         log.info("[MoveTask] Bắt đầu - projectId={}, taskId={}, toStatus={}, toPosition={}",
                 projectId, taskId, request.getToStatus(), request.getToPosition());
 
-        // Lấy task
+        // 1. Lấy task
         Task task = taskQueryRepository.findById(taskId)
                 .orElseThrow(() -> {
                     log.error("[MoveTask] Task không tồn tại: taskId={}", taskId);
@@ -66,40 +83,31 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
         log.debug("[MoveTask] Tìm thấy task: id={}, status={}, position={}",
                 task.getId(), task.getStatus(), task.getPosition());
 
-        // Parse status
+        // 2. Parse status
         TaskStatus toStatus = taskStatusParser.parseStatus(request.getToStatus());
         log.debug("[MoveTask] Parsed toStatus={}", toStatus);
 
-        // Validate
+        // 3. Validate
         log.debug("[MoveTask] Validating move...");
         task.validateMove(toStatus, request.getToPosition(), projectId);
 
         User user = permissionService.validateProjectMember(projectId, userEmail);
         log.debug("[MoveTask] Validation OK userId={}", user.getId());
 
-        // Lưu giá trị cũ trước khi thực hiện move
+        // 4. Lưu giá trị cũ
         TaskStatus fromStatus = task.getStatus();
         Integer fromPosition = task.getPosition();
 
-        // Kiểm tra có phải same column không
-        boolean isSameColumn = fromStatus.equals(toStatus);
+        // 5. Execute bulk update (không return List<Task> nữa)
+        log.debug("[MoveTask] Executing bulk update...");
+        executeMove(projectId, task, toStatus, request.getToPosition());
 
-        // Execute
-        log.debug("[MoveTask] Executing move... sameColumn={}", isSameColumn);
-        List<Task> tasksToUpdate = executeMove(projectId, task, toStatus, request.getToPosition());
-
-        // Result
-        log.debug("[MoveTask] Tasks affected={}", tasksToUpdate.size());
-        // Lưu các task affected
-        if (!tasksToUpdate.isEmpty()) {
-            taskCommandRepository.saveAll(tasksToUpdate);
-            log.debug("[MoveTask] Đã lưu {} tasks", tasksToUpdate.size());
-        }
+        // 6. Chỉ save task được move
         Task savedTask = taskCommandRepository.save(task);
         log.info("[MoveTask] Hoàn thành - taskId={}, newStatus={}, newPosition={}",
                 savedTask.getId(), savedTask.getStatus(), savedTask.getPosition());
 
-        // Ghi log hoạt động (async)
+        // 7. Ghi log hoạt động (async)
         logActivityUseCase.logActivity(LogActivityRequest.builder()
                 .projectId(projectId)
                 .userId(user.getId())
@@ -115,45 +123,87 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
                 ))
                 .build());
 
-        // Smart Response: affectedTasks nếu same column, allTasks nếu different column
-        if (isSameColumn) {
-            log.debug("[MoveTask] Same column move - returning affected tasks only");
-            List<Task> affectedTasks = new ArrayList<>(tasksToUpdate);
-            affectedTasks.add(savedTask);
-            List<TaskResult> affectedResults = affectedTasks.stream()
-                    .map(taskMapper::toTaskResult)
-                    .toList();
-            return MoveTaskResponse.builder()
-                    .sameColumn(true)
-                    .affectedTasks(affectedResults)
-                    .allTasks(null)
-                    .build();
-        } else {
-            log.debug("[MoveTask] Different column move - returning all tasks");
-            List<Task> allTasks = taskQueryRepository.findAllByProjectIdOrderByPosition(projectId);
-            List<TaskResult> allResults = allTasks.stream()
-                    .map(taskMapper::toTaskResult)
-                    .toList();
-            return MoveTaskResponse.builder()
-                    .sameColumn(false)
-                    .affectedTasks(null)
-                    .allTasks(allResults)
-                    .build();
-        }
+        // 8. Query lại affected columns (Incremental Sync)
+        log.debug("[MoveTask] Querying affected columns...");
+        Map<String, List<TaskResult>> affectedColumns = buildAffectedColumnsResponse(
+                projectId, fromStatus, toStatus, fromStatus.equals(toStatus)
+        );
+
+        return MoveTaskResponse.builder()
+                .affectedColumns(affectedColumns)
+                .build();
     }
 
-
-    private List<Task> executeMove(Long projectId, Task task, TaskStatus toStatus, Integer toPosition) {
+    /**
+     * Thực hiện move - gọi TaskOrderService với bulk update.
+     * Không return List<Task> nữa vì bulk update thực hiện trực tiếp trong DB.
+     */
+    private void executeMove(Long projectId, Task task, TaskStatus toStatus, Integer toPosition) {
         TaskStatus fromStatus = task.getStatus();
         Integer fromPosition = task.getPosition();
         log.debug("[MoveTask] Execute move: from {}:{} → {}:{}", fromStatus, fromPosition, toStatus, toPosition);
 
         if (fromStatus.equals(toStatus)) {
             log.debug("[MoveTask] Move within same column");
-            return taskOrderService.moveWithinColumn(projectId, task, fromPosition, toPosition);
+            taskOrderService.moveWithinColumn(projectId, task, fromPosition, toPosition);
         } else {
             log.debug("[MoveTask] Move to different column");
-            return taskOrderService.moveToDifferentColumn(projectId, task, fromStatus, toStatus, fromPosition, toPosition);
+            taskOrderService.moveToDifferentColumn(projectId, task, fromStatus, toStatus, fromPosition, toPosition);
         }
+    }
+
+    /**
+     * Build affectedColumns response.
+     * Chỉ query lại các columns bị ảnh hưởng, không query toàn bộ project.
+     */
+    private Map<String, List<TaskResult>> buildAffectedColumnsResponse(
+            Long projectId, TaskStatus fromStatus, TaskStatus toStatus, boolean isSameColumn) {
+
+        Map<String, List<TaskResult>> result = new HashMap<>();
+
+        if (isSameColumn) {
+            // Same column: chỉ cần query lại 1 column
+            log.debug("[MoveTask] Same column - querying only {}", fromStatus);
+            List<TaskJpaEntity> columnTasks = taskJpaRepository
+                    .findByProjectIdAndStatusOrderByPositionAsc(projectId, fromStatus);
+            result.put(fromStatus.name(), mapToTaskResults(columnTasks));
+        } else {
+            // Different columns: query cả source và target
+            log.debug("[MoveTask] Different columns - querying {} and {}", fromStatus, toStatus);
+
+            List<TaskJpaEntity> sourceColumn = taskJpaRepository
+                    .findByProjectIdAndStatusOrderByPositionAsc(projectId, fromStatus);
+            result.put(fromStatus.name(), mapToTaskResults(sourceColumn));
+
+            List<TaskJpaEntity> targetColumn = taskJpaRepository
+                    .findByProjectIdAndStatusOrderByPositionAsc(projectId, toStatus);
+            result.put(toStatus.name(), mapToTaskResults(targetColumn));
+        }
+
+        return result;
+    }
+
+    /**
+     * Helper: Convert List<TaskJpaEntity> to List<TaskResult>
+     */
+    private List<TaskResult> mapToTaskResults(List<TaskJpaEntity> entities) {
+        return entities.stream()
+                .map(this::toTaskResult)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Helper: Convert TaskJpaEntity to TaskResult
+     */
+    private TaskResult toTaskResult(TaskJpaEntity entity) {
+        return TaskResult.builder()
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .description(entity.getDescription())
+                .status(entity.getStatus())
+                .projectId(entity.getProjectId())
+                .assigneeId(entity.getAssigneeId())
+                .position(entity.getPosition())
+                .build();
     }
 }

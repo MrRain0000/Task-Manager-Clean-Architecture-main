@@ -27,6 +27,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -120,7 +121,7 @@ public class TaskController {
 
     // POST /api/projects/{projectId}/tasks/{taskId}/move
     @PostMapping("/{taskId}/move")
-    public ResponseEntity<ApiResponse<List<TaskResponse>>> moveTask(
+    public ResponseEntity<ApiResponse<Map<String, List<TaskResponse>>>> moveTask(
             @PathVariable Long projectId,
             @PathVariable Long taskId,
             @Valid @RequestBody MoveTaskRequest request,
@@ -128,18 +129,16 @@ public class TaskController {
 
         var result = moveTaskUseCase.moveTask(projectId, taskId, request, authentication.getName());
 
-        // Smart Response: affectedTasks nếu same column, allTasks nếu different column
-        List<TaskResponse> taskResponses;
-        if (result.isSameColumn()) {
-            taskResponses = result.getAffectedTasks().stream()
-                    .map(taskResponseMapper::toTaskResponse)
-                    .toList();
-        } else {
-            taskResponses = result.getAllTasks().stream()
-                    .map(taskResponseMapper::toTaskResponse)
-                    .toList();
-        }
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Di chuyển task thành công", taskResponses));
+        // Convert affectedColumns map: Map<String, List<TaskResult>> -> Map<String, List<TaskResponse>>
+        Map<String, List<TaskResponse>> affectedColumns = result.getAffectedColumns().entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().stream()
+                                .map(taskResponseMapper::toTaskResponse)
+                                .collect(Collectors.toList())
+                ));
+
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Di chuyển task thành công", affectedColumns));
     }
 
     // POST /api/projects/{projectId}/tasks/{taskId}/assign

@@ -47,20 +47,6 @@ public class Task {
     }
 
     /**
-     * Tăng position (khi task khác di chuyển lên)
-     */
-    public void increasePosition() {
-        this.position++;
-    }
-
-    /**
-     * Giảm position (khi task khác di chuyển xuống)
-     */
-    public void decreasePosition() {
-        this.position--;
-    }
-
-    /**
      * Validate việc di chuyển task.
      * 
      * @throws IllegalArgumentException nếu validation fail
