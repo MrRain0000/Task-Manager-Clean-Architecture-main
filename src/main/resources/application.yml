@@ -3,7 +3,7 @@ spring:
     name: Task Management System
 
   profiles:
-    active: prod
+    active: dev
 
   jackson:
     serialization:
