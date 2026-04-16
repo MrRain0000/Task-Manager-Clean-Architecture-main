@@ -23,7 +23,8 @@ public class EmailServiceImpl implements EmailService {
     @Value("${app.frontend.url:http://localhost:5173}")
     private String frontendUrl;
 
-    public EmailServiceImpl(@Value("${RESEND_API_KEY:}") String apiKey) {
+    public EmailServiceImpl(@Value("${app.email.resend-api-key:}") String apiKey) {
+            log.info("RESEND KEY RAW: [{}]", apiKey);
         if (apiKey == null || apiKey.isEmpty()) {
             log.warn("RESEND_API_KEY không được cấu hình. Email sẽ không được gửi.");
             this.resend = null;
@@ -59,6 +60,11 @@ public class EmailServiceImpl implements EmailService {
         }
 
         try {
+            log.info("=== RESEND DEBUG START ===");
+            log.info("FROM EMAIL RAW: [{}]", fromEmail);
+            log.info("TO EMAIL RAW: [{}]", to);
+            log.info("SUBJECT: [{}]", subject);
+            log.info("FROM LENGTH: {}", fromEmail.length());
             CreateEmailOptions params = CreateEmailOptions.builder()
                     .from(fromEmail)
                     .to(to)
