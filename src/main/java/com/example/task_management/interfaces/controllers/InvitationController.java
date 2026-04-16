@@ -49,14 +49,15 @@ public class InvitationController {
     }
 
     // 2. API - Lấy danh sách Lời mời chưa giải quyết (Dành cho người được mời)
+    // Note: Trả về array trực tiếp, không bọc trong ApiResponse (theo API_DOCS.md)
     @GetMapping("/users/me/invitations")
-    public ResponseEntity<ApiResponse<List<InvitationResponse>>> getMyPendingInvitations(Authentication authentication) {
-        
+    public ResponseEntity<List<InvitationResponse>> getMyPendingInvitations(Authentication authentication) {
+
         List<InvitationResult> results = getPendingInvitationsUseCase.getPendingInvitations(authentication.getName());
         List<InvitationResponse> pendingInvitations = results.stream()
                 .map(invitationResponseMapper::toInvitationResponse)
                 .toList();
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách lời mời thành công", pendingInvitations));
+        return ResponseEntity.ok(pendingInvitations);
     }
 
     // 3. API - Quyết định Chấp nhận/Từ chối Lời mời (Dành cho người được mời)
