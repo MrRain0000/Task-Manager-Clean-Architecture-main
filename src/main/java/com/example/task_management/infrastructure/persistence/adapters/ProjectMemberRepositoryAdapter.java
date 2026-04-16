@@ -81,4 +81,9 @@ public class ProjectMemberRepositoryAdapter implements ProjectMemberRepository {
     public void deleteAllByProjectId(Long projectId) {
         projectMemberJpaRepository.deleteAllByProjectId(projectId);
     }
+
+    @Override
+    public int countByUserId(Long userId) {
+        return projectMemberJpaRepository.countByUserId(userId);
+    }
 }

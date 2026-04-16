@@ -1,5 +1,6 @@
 package com.example.task_management.application.usecases.impl.task;
 
+import com.example.task_management.application.DTOUsecase.response.task.MoveTaskResponse;
 import com.example.task_management.application.DTOUsecase.response.task.TaskResult;
 import com.example.task_management.domain.entities.User;
 import com.example.task_management.domain.services.PermissionService;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -51,8 +53,8 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
 
     @Override
     @Transactional
-    public TaskResult moveTask(Long projectId, Long taskId, MoveTaskRequest request, String userEmail) {
-        log.info("[MoveTask] Bắt đầu - projectId={}, taskId={}, toStatus={}, toPosition={}", 
+    public MoveTaskResponse moveTask(Long projectId, Long taskId, MoveTaskRequest request, String userEmail) {
+        log.info("[MoveTask] Bắt đầu - projectId={}, taskId={}, toStatus={}, toPosition={}",
                 projectId, taskId, request.getToStatus(), request.getToPosition());
 
         // Lấy task
@@ -61,7 +63,7 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
                     log.error("[MoveTask] Task không tồn tại: taskId={}", taskId);
                     return new IllegalArgumentException("Task không tồn tại");
                 });
-        log.debug("[MoveTask] Tìm thấy task: id={}, status={}, position={}", 
+        log.debug("[MoveTask] Tìm thấy task: id={}, status={}, position={}",
                 task.getId(), task.getStatus(), task.getPosition());
 
         // Parse status
@@ -79,11 +81,14 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
         TaskStatus fromStatus = task.getStatus();
         Integer fromPosition = task.getPosition();
 
+        // Kiểm tra có phải same column không
+        boolean isSameColumn = fromStatus.equals(toStatus);
+
         // Execute
-        log.debug("[MoveTask] Executing move...");
+        log.debug("[MoveTask] Executing move... sameColumn={}", isSameColumn);
         List<Task> tasksToUpdate = executeMove(projectId, task, toStatus, request.getToPosition());
 
-// Result
+        // Result
         log.debug("[MoveTask] Tasks affected={}", tasksToUpdate.size());
         // Lưu các task affected
         if (!tasksToUpdate.isEmpty()) {
@@ -91,7 +96,7 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
             log.debug("[MoveTask] Đã lưu {} tasks", tasksToUpdate.size());
         }
         Task savedTask = taskCommandRepository.save(task);
-        log.info("[MoveTask] Hoàn thành - taskId={}, newStatus={}, newPosition={}", 
+        log.info("[MoveTask] Hoàn thành - taskId={}, newStatus={}, newPosition={}",
                 savedTask.getId(), savedTask.getStatus(), savedTask.getPosition());
 
         // Ghi log hoạt động (async)
@@ -110,7 +115,31 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
                 ))
                 .build());
 
-        return taskMapper.toTaskResult(savedTask);
+        // Smart Response: affectedTasks nếu same column, allTasks nếu different column
+        if (isSameColumn) {
+            log.debug("[MoveTask] Same column move - returning affected tasks only");
+            List<Task> affectedTasks = new ArrayList<>(tasksToUpdate);
+            affectedTasks.add(savedTask);
+            List<TaskResult> affectedResults = affectedTasks.stream()
+                    .map(taskMapper::toTaskResult)
+                    .toList();
+            return MoveTaskResponse.builder()
+                    .sameColumn(true)
+                    .affectedTasks(affectedResults)
+                    .allTasks(null)
+                    .build();
+        } else {
+            log.debug("[MoveTask] Different column move - returning all tasks");
+            List<Task> allTasks = taskQueryRepository.findAllByProjectIdOrderByPosition(projectId);
+            List<TaskResult> allResults = allTasks.stream()
+                    .map(taskMapper::toTaskResult)
+                    .toList();
+            return MoveTaskResponse.builder()
+                    .sameColumn(false)
+                    .affectedTasks(null)
+                    .allTasks(allResults)
+                    .build();
+        }
     }
 
 

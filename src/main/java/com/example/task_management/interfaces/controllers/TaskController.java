@@ -7,6 +7,7 @@ import com.example.task_management.interfaces.dto.request.task.UpdateTaskRequest
 import com.example.task_management.interfaces.dto.request.task.UpdateTaskStatusRequest;
 import com.example.task_management.interfaces.dto.response.ApiResponse;
 import com.example.task_management.interfaces.dto.response.task.TaskDetailResponse;
+import com.example.task_management.interfaces.dto.response.task.TaskListResponse;
 import com.example.task_management.interfaces.dto.response.task.TaskResponse;
 import com.example.task_management.application.usecases.task.AssignTaskUseCase;
 import com.example.task_management.application.usecases.task.CreateTaskUseCase;
@@ -14,6 +15,7 @@ import com.example.task_management.application.usecases.task.DeleteTaskUseCase;
 import com.example.task_management.application.usecases.task.GetTaskDetailUseCase;
 import com.example.task_management.application.usecases.task.GetTaskUseCase;
 import com.example.task_management.application.usecases.task.MoveTaskUseCase;
+import com.example.task_management.application.usecases.task.SearchTasksUseCase;
 import com.example.task_management.application.usecases.task.UpdateTaskStatusUseCase;
 import com.example.task_management.application.usecases.task.UpdateTaskUseCase;
 import com.example.task_management.interfaces.mappers.TaskResponseMapper;
@@ -25,6 +27,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/projects/{projectId}/tasks")
@@ -38,6 +41,7 @@ public class TaskController {
     private final DeleteTaskUseCase deleteTaskUseCase;
     private final UpdateTaskUseCase updateTaskUseCase;
     private final UpdateTaskStatusUseCase updateTaskStatusUseCase;
+    private final SearchTasksUseCase searchTasksUseCase;
     private final TaskResponseMapper taskResponseMapper;
     private final UpdateTaskRequestMapper updateTaskRequestMapper;
 
@@ -47,6 +51,7 @@ public class TaskController {
                           DeleteTaskUseCase deleteTaskUseCase,
                           UpdateTaskUseCase updateTaskUseCase,
                           UpdateTaskStatusUseCase updateTaskStatusUseCase,
+                          SearchTasksUseCase searchTasksUseCase,
                           TaskResponseMapper taskResponseMapper,
                           UpdateTaskRequestMapper updateTaskRequestMapper) {
         this.createTaskUseCase = createTaskUseCase;
@@ -57,6 +62,7 @@ public class TaskController {
         this.deleteTaskUseCase = deleteTaskUseCase;
         this.updateTaskUseCase = updateTaskUseCase;
         this.updateTaskStatusUseCase = updateTaskStatusUseCase;
+        this.searchTasksUseCase = searchTasksUseCase;
         this.taskResponseMapper = taskResponseMapper;
         this.updateTaskRequestMapper = updateTaskRequestMapper;
     }
@@ -114,15 +120,26 @@ public class TaskController {
 
     // POST /api/projects/{projectId}/tasks/{taskId}/move
     @PostMapping("/{taskId}/move")
-    public ResponseEntity<ApiResponse<TaskResponse>> moveTask(
+    public ResponseEntity<ApiResponse<List<TaskResponse>>> moveTask(
             @PathVariable Long projectId,
             @PathVariable Long taskId,
             @Valid @RequestBody MoveTaskRequest request,
             Authentication authentication) {
 
         var result = moveTaskUseCase.moveTask(projectId, taskId, request, authentication.getName());
-        TaskResponse taskResponse = taskResponseMapper.toTaskResponse(result);
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Di chuyển task thành công", taskResponse));
+
+        // Smart Response: affectedTasks nếu same column, allTasks nếu different column
+        List<TaskResponse> taskResponses;
+        if (result.isSameColumn()) {
+            taskResponses = result.getAffectedTasks().stream()
+                    .map(taskResponseMapper::toTaskResponse)
+                    .toList();
+        } else {
+            taskResponses = result.getAllTasks().stream()
+                    .map(taskResponseMapper::toTaskResponse)
+                    .toList();
+        }
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Di chuyển task thành công", taskResponses));
     }
 
     // POST /api/projects/{projectId}/tasks/{taskId}/assign
@@ -167,5 +184,23 @@ public class TaskController {
         var result = updateTaskStatusUseCase.updateTaskStatus(taskId, projectId, command, authentication.getName());
         TaskResponse taskResponse = taskResponseMapper.toTaskResponse(result);
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Cập nhật trạng thái task thành công", taskResponse));
+    }
+
+    // GET /api/projects/{projectId}/tasks/search?keyword=xxx
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<TaskListResponse>> searchTasks(
+            @PathVariable Long projectId,
+            @RequestParam String keyword,
+            Authentication authentication) {
+
+        var result = searchTasksUseCase.searchTasks(projectId, keyword, authentication.getName());
+        TaskListResponse responseData = TaskListResponse.builder()
+                .tasks(result.getTasks().stream()
+                        .map(taskResponseMapper::toTaskResponse)
+                        .collect(Collectors.toList()))
+                .totalCount(result.getTotalCount())
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Tìm kiếm task thành công", responseData));
     }
 }

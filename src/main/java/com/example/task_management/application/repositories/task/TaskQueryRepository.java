@@ -21,4 +21,8 @@ public interface TaskQueryRepository {
     List<Task> findAllByProjectIdAndStatusAndPositionGreaterThanEqual(Long projectId, TaskStatus status, Integer position);
 
     int countByProjectId(Long projectId);
+    
+    int countByAssigneeId(Long assigneeId);
+    
+    List<Task> searchByProjectIdAndKeyword(Long projectId, String keyword);
 }

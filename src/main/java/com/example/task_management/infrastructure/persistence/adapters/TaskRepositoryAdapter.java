@@ -74,6 +74,17 @@ public class TaskRepositoryAdapter implements TaskRepository {
         return taskJpaRepository.countByProjectId(projectId);
     }
 
+    @Override
+    public int countByAssigneeId(Long assigneeId) {
+        return taskJpaRepository.countByAssigneeId(assigneeId);
+    }
+
+    @Override
+    public List<Task> searchByProjectIdAndKeyword(Long projectId, String keyword) {
+        return taskJpaRepository.searchByProjectIdAndKeyword(projectId, keyword)
+                .stream().map(this::toDomain).toList();
+    }
+
     // ── Mappers ─────────────────────────────────────────────────────
     private TaskJpaEntity toJpaEntity(Task task) {
         TaskJpaEntity entity = new TaskJpaEntity();

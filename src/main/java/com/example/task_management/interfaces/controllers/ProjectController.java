@@ -1,14 +1,18 @@
 package com.example.task_management.interfaces.controllers;
 
-import com.example.task_management.application.DTOUsecase.response.project.ProjectResult;
+import com.example.task_management.application.DTOUsecase.request.project.UpdateProjectCommand;
+import com.example.task_management.application.DTOUsecase.response.project.ProjectDetailResult;
 import com.example.task_management.application.DTOUsecase.response.project.ProjectListResult;
-import com.example.task_management.interfaces.dto.response.project.ProjectListResponse;
+import com.example.task_management.application.DTOUsecase.response.project.ProjectResult;
 import com.example.task_management.interfaces.dto.request.project.CreateProjectRequest;
 import com.example.task_management.interfaces.dto.request.project.UpdateProjectRequest;
 import com.example.task_management.interfaces.dto.response.ApiResponse;
+import com.example.task_management.interfaces.dto.response.project.ProjectDetailResponse;
+import com.example.task_management.interfaces.dto.response.project.ProjectListResponse;
 import com.example.task_management.interfaces.dto.response.project.ProjectResponse;
 import com.example.task_management.application.usecases.project.CreateProjectUseCase;
 import com.example.task_management.application.usecases.project.DeleteProjectUseCase;
+import com.example.task_management.application.usecases.project.GetProjectDetailUseCase;
 import com.example.task_management.application.usecases.project.GetProjectListUseCase;
 import com.example.task_management.application.usecases.project.UpdateProjectUseCase;
 import com.example.task_management.interfaces.mappers.ProjectRequestMapper;
@@ -29,6 +33,7 @@ public class ProjectController {
         private final CreateProjectUseCase createProjectUseCase;
         private final DeleteProjectUseCase deleteProjectUseCase;
         private final GetProjectListUseCase getProjectListUseCase;
+        private final GetProjectDetailUseCase getProjectDetailUseCase;
         private final UpdateProjectUseCase updateProjectUseCase;
         private final ProjectRequestMapper projectRequestMapper;
         private final ProjectResponseMapper projectResponseMapper;
@@ -37,12 +42,14 @@ public class ProjectController {
                         CreateProjectUseCase createProjectUseCase,
                         DeleteProjectUseCase deleteProjectUseCase,
                         GetProjectListUseCase getProjectListUseCase,
+                        GetProjectDetailUseCase getProjectDetailUseCase,
                         UpdateProjectUseCase updateProjectUseCase,
                         ProjectRequestMapper projectRequestMapper,
                         ProjectResponseMapper projectResponseMapper) {
                 this.createProjectUseCase = createProjectUseCase;
                 this.deleteProjectUseCase = deleteProjectUseCase;
                 this.getProjectListUseCase = getProjectListUseCase;
+                this.getProjectDetailUseCase = getProjectDetailUseCase;
                 this.updateProjectUseCase = updateProjectUseCase;
                 this.projectRequestMapper = projectRequestMapper;
                 this.projectResponseMapper = projectResponseMapper;
@@ -99,6 +106,22 @@ public class ProjectController {
 
                 return ResponseEntity.status(HttpStatus.OK)
                                 .body(ApiResponse.success(HttpStatus.OK.value(), "Dự án đã được xóa thành công", null));
+        }
+
+        // API: Lấy chi tiết project
+        @GetMapping("/{projectId}")
+        public ResponseEntity<ApiResponse<ProjectDetailResponse>> getProjectDetail(
+                        @PathVariable Long projectId,
+                        Authentication authentication) {
+
+                String currentUserEmail = authentication.getName();
+
+                ProjectDetailResult result = getProjectDetailUseCase.getProjectDetail(projectId, currentUserEmail);
+                ProjectDetailResponse responseData = projectResponseMapper.toProjectDetailResponse(result);
+
+                return ResponseEntity.status(HttpStatus.OK)
+                                .body(ApiResponse.success(HttpStatus.OK.value(), "Lấy chi tiết dự án thành công",
+                                                responseData));
         }
 
         // API: Cập nhật dự án

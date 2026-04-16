@@ -411,22 +411,42 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 }
 ```
 
-- **Response** (200 OK):
-```json
-{
-    "status": 200,
-    "message": "Di chuyển task thành công",
-    "data": {
-        "id": 1,
-        "title": "Thiết kế màn hình Login",
-        "description": "Làm theo Figma đã được duyệt",
-        "status": "IN_PROGRESS",
-        "projectId": 1,
-        "assigneeId": null,
-        "position": 2
+- **Response** (200 OK) - Smart Response:
+
+  - **Trường hợp 1: Move trong cùng column** (e.g., TODO→TODO)
+    - Chỉ trả về các tasks bị thay đổi position (tiết kiệm bandwidth)
+    ```json
+    {
+        "status": 200,
+        "message": "Di chuyển task thành công",
+        "data": [
+            { "id": 2, "title": "Task B", "status": "TODO", "position": 0 },
+            { "id": 3, "title": "Task C", "status": "TODO", "position": 1 },
+            { "id": 1, "title": "Task A", "status": "TODO", "position": 2 }
+        ]
     }
-}
-```
+    ```
+    → Frontend merge vào state hiện tại
+
+  - **Trường hợp 2: Move sang column khác** (e.g., TODO→IN_PROGRESS)
+    - Trả về tất cả tasks trong project (để sync cả 2 columns)
+    ```json
+    {
+        "status": 200,
+        "message": "Di chuyển task thành công",
+        "data": [
+            { "id": 2, "title": "Task B", "status": "TODO", "position": 0 },
+            { "id": 1, "title": "Task A", "status": "IN_PROGRESS", "position": 0 },
+            { "id": 3, "title": "Task C", "status": "IN_PROGRESS", "position": 1 }
+        ]
+    }
+    ```
+    → Frontend replace toàn bộ state
+
+- **Notes**:
+  - API tự động phát hiện loại move và trả response phù hợp
+  - Frontend dựa vào số lượng tasks trả về để quyết định merge hay replace
+  - Không cần gọi thêm API GET /tasks sau khi move
 - **Business Rules**:
   - Task phải tồn tại và thuộc project được chỉ định.
   - User phải là thành viên ACCEPTED của project.
@@ -649,4 +669,175 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 - **Error Cases**:
   - `403`: User không phải thành viên của project.
   - `404`: Project không tồn tại.
+
+---
+
+## 6. Project Detail
+
+### 6.1 Lấy chi tiết Project
+- **URL**: `GET /api/projects/{projectId}`
+- **Auth Required**: Yes (Thành viên ACCEPTED của project)
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Lấy chi tiết dự án thành công",
+    "data": {
+        "id": 1,
+        "name": "Project Alpha",
+        "description": "Mô tả dự án",
+        "ownerId": 1,
+        "members": [
+            {
+                "userId": 1,
+                "username": "Nguyen Van A",
+                "email": "a@example.com",
+                "role": "OWNER",
+                "invitationStatus": "ACCEPTED"
+            },
+            {
+                "userId": 2,
+                "username": "Tran Van B",
+                "email": "b@example.com",
+                "role": "MEMBER",
+                "invitationStatus": "ACCEPTED"
+            }
+        ],
+        "taskSummary": {
+            "totalTasks": 10,
+            "todoCount": 3,
+            "inProgressCount": 4,
+            "doneCount": 2,
+            "cancelledCount": 1
+        }
+    }
+}
+```
+- **Business Rules**:
+  - Chỉ thành viên đã ACCEPTED lời mời mới có thể xem chi tiết project.
+  - Task summary được tính tự động dựa trên số lượng task theo từng status.
+- **Error Cases**:
+  - `403`: User chưa chấp nhận lời mời vào project.
+  - `404`: Project không tồn tại.
+
+---
+
+## 7. Task Search
+
+### 7.1 Tìm kiếm Task theo từ khóa
+- **URL**: `GET /api/projects/{projectId}/tasks/search?keyword={keyword}`
+- **Auth Required**: Yes (Thành viên ACCEPTED của project)
+- **Query Params**:
+  - `keyword` (String, required): Từ khóa tìm kiếm trong title và description
+- **Ví dụ**: `GET /api/projects/1/tasks/search?keyword=login`
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Tìm kiếm task thành công",
+    "data": {
+        "tasks": [
+            {
+                "id": 1,
+                "title": "Implement login page",
+                "description": "Create login form with validation",
+                "status": "IN_PROGRESS",
+                "projectId": 1,
+                "assigneeId": 5,
+                "position": 0
+            }
+        ],
+        "totalCount": 1
+    }
+}
+```
+- **Business Rules**:
+  - Tìm kiếm không phân biệt hoa thường (case-insensitive).
+  - Tìm kiếm trong cả title và description của task.
+  - Chỉ tìm kiếm trong project được chỉ định.
+- **Error Cases**:
+  - `403`: User không phải thành viên ACCEPTED của project.
+
+---
+
+## 8. User Profile
+
+### 8.1 Lấy thông tin Profile User hiện tại
+- **URL**: `GET /api/users/me`
+- **Auth Required**: Yes
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Lấy thông tin profile thành công",
+    "data": {
+        "id": 1,
+        "username": "Nguyen Van A",
+        "email": "a@example.com",
+        "isVerified": true,
+        "totalProjects": 5,
+        "totalTasks": 12
+    }
+}
+```
+- **Business Rules**:
+  - `totalProjects`: Số project mà user là thành viên (kể cả PENDING, ACCEPTED).
+  - `totalTasks`: Số task được assign cho user.
+
+### 8.2 Cập nhật Profile User
+- **URL**: `PUT /api/users/me`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+    "username": "Nguyen Van A Updated"
+}
+```
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Cập nhật profile thành công",
+    "data": {
+        "id": 1,
+        "username": "Nguyen Van A Updated",
+        "email": "a@example.com",
+        "isVerified": true,
+        "totalProjects": 5,
+        "totalTasks": 12
+    }
+}
+```
+- **Validation Rules**:
+  - `username`: Không được để trống.
+- **Error Cases**:
+  - `400`: Username để trống.
+
+### 8.3 Đổi mật khẩu
+- **URL**: `PUT /api/users/me/password`
+- **Auth Required**: Yes
+- **Request Body**:
+```json
+{
+    "currentPassword": "oldPassword123",
+    "newPassword": "newPassword456"
+}
+```
+- **Response** (200 OK):
+```json
+{
+    "status": 200,
+    "message": "Đổi mật khẩu thành công",
+    "data": null
+}
+```
+- **Validation Rules**:
+  - `currentPassword`: Không được để trống.
+  - `newPassword`: Tối thiểu 6 ký tự.
+- **Business Rules**:
+  - `currentPassword` phải khớp với mật khẩu hiện tại.
+  - Mật khẩu mới được hash trước khi lưu.
+- **Error Cases**:
+  - `400`: Mật khẩu hiện tại không đúng.
+  - `400`: Mật khẩu mới ít hơn 6 ký tự.
 

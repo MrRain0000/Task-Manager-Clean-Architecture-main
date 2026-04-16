@@ -4,20 +4,14 @@ import com.example.task_management.application.DTOUsecase.request.task.UpdateTas
 import com.example.task_management.application.DTOUsecase.response.task.TaskResult;
 import com.example.task_management.application.events.TaskStatusUpdatedEvent;
 import com.example.task_management.application.mapper.TaskMapper;
-import com.example.task_management.application.repositories.ProjectMemberRepository;
 import com.example.task_management.application.repositories.TaskRepository;
-import com.example.task_management.application.repositories.UserRepository;
 import com.example.task_management.domain.services.PermissionService;
 import com.example.task_management.domain.services.Task.TaskStatusTransitionService;
 import com.example.task_management.application.usecases.task.UpdateTaskStatusUseCase;
-import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.Task;
 import com.example.task_management.domain.entities.User;
-import com.example.task_management.domain.enums.InvitationStatus;
 import com.example.task_management.domain.enums.TaskStatus;
-import com.example.task_management.interfaces.exceptions.ProjectAccessDeniedException;
 import com.example.task_management.interfaces.exceptions.TaskNotFoundException;
-import com.example.task_management.interfaces.exceptions.UserNotFoundException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,8 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class UpdateTaskStatusUseCaseImpl implements UpdateTaskStatusUseCase {
 
     private final TaskRepository taskRepository;
-    private final UserRepository userRepository;
-    private final ProjectMemberRepository projectMemberRepository;
     private final TaskMapper taskMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final TaskStatusTransitionService transitionService;
@@ -39,15 +31,11 @@ public class UpdateTaskStatusUseCaseImpl implements UpdateTaskStatusUseCase {
 
     public UpdateTaskStatusUseCaseImpl(
             TaskRepository taskRepository,
-            UserRepository userRepository,
-            ProjectMemberRepository projectMemberRepository,
             TaskMapper taskMapper,
             ApplicationEventPublisher eventPublisher,
             TaskStatusTransitionService transitionService,
             PermissionService permissionService) {
         this.taskRepository = taskRepository;
-        this.userRepository = userRepository;
-        this.projectMemberRepository = projectMemberRepository;
         this.taskMapper = taskMapper;
         this.eventPublisher = eventPublisher;
         this.transitionService = transitionService;

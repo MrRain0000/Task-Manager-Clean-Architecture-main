@@ -1,0 +1,47 @@
+package com.example.task_management.interfaces.dto.response.project;
+
+import com.example.task_management.domain.enums.MemberRole;
+import com.example.task_management.domain.enums.InvitationStatus;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProjectDetailResponse {
+    private Long id;
+    private String name;
+    private String description;
+    private Long ownerId;
+    private List<ProjectMemberInfo> members;
+    private TaskSummary taskSummary;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ProjectMemberInfo {
+        private Long userId;
+        private String username;
+        private String email;
+        private MemberRole role;
+        private InvitationStatus invitationStatus;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TaskSummary {
+        private int totalTasks;
+        private int todoCount;
+        private int inProgressCount;
+        private int doneCount;
+        private int cancelledCount;
+    }
+}
