@@ -19,6 +19,12 @@ spring:
       hibernate:
         format_sql: true
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
 logging:
   level:
     com.example.task_management: DEBUG
@@ -30,6 +36,8 @@ jwt:
   expiration-ms: 86400000
 
 app:
+  upload:
+    dir: ./uploads/attachments
 
   email:
     resend-api-key: re_NwoLaupJ_AMKUoCCJ5VoaaDnJMeeGJraW
