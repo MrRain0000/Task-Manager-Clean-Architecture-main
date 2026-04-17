@@ -1244,7 +1244,8 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 - **Query Parameters**:
   - `status` (optional): Filter theo status (`TODO`, `IN_PROGRESS`, `DONE`, `CANCELLED`).
 - **Business Rules**:
-  - Trả về danh sách sorted theo `createdAt` DESC (mới nhất trước).
+  - Trả về danh sách **không sort** (thứ tự tự nhiên từ DB).
+  - Frontend tự sort theo nhu cầu (priority, createdAt, v.v.).
   - Include thông tin assignee (nếu có).
 
 

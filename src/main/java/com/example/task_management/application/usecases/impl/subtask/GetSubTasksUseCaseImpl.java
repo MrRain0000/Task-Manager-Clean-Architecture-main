@@ -47,8 +47,8 @@ public class GetSubTasksUseCaseImpl implements GetSubTasksUseCase {
         // Validate và lấy dữ liệu
         Task task = validateAndGetTask(taskId, userEmail);
 
-        // Lấy danh sách sub-tasks
-        List<SubTask> subtasks = subTaskQueryRepository.findAllByTaskIdOrderByPositionAsc(taskId);
+        // Lấy danh sách sub-tasks (không sort, để FE tự xử lý)
+        List<SubTask> subtasks = subTaskQueryRepository.findAllByTaskId(taskId);
 
         log.info("[GetSubTasks] Thành công - taskId={}, count={}", taskId, subtasks.size());
 
@@ -64,11 +64,8 @@ public class GetSubTasksUseCaseImpl implements GetSubTasksUseCase {
         // Validate và lấy dữ liệu
         Task task = validateAndGetTask(taskId, userEmail);
 
-        // Lấy danh sách sub-tasks theo status
+        // Lấy danh sách sub-tasks theo status (không sort, để FE tự xử lý)
         List<SubTask> subtasks = subTaskQueryRepository.findAllByTaskIdAndStatus(taskId, status);
-
-        // Sort theo position
-        subtasks.sort((a, b) -> Integer.compare(a.getPosition(), b.getPosition()));
 
         log.info("[GetSubTasksByStatus] Thành công - taskId={}, status={}, count={}",
                 taskId, status, subtasks.size());
