@@ -688,9 +688,15 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
   - `TASK_MOVED`: Di chuyển task trong Kanban
   - `TASK_ASSIGNED`: Giao task cho user
   - `PROJECT_CREATED`: Tạo project
+  - `PROJECT_UPDATED`: Cập nhật project
   - `PROJECT_DELETED`: Xóa project
   - `MEMBER_INVITED`: Mời thành viên
   - `MEMBER_JOINED`: Chấp nhận lời mời vào project
+  - `SUBTASK_CREATED`: Tạo sub-task
+  - `SUBTASK_UPDATED`: Cập nhật sub-task
+  - `SUBTASK_DELETED`: Xóa sub-task
+  - `ATTACHMENT_UPLOADED`: Upload file đính kèm
+  - `ATTACHMENT_DELETED`: Xóa file đính kèm
 - **Business Rules**:
   - Logs được sắp xếp theo `createdAt` giảm dần (mới nhất trước).
   - Pagination hỗ trợ tối đa 100 records mỗi request.
@@ -1109,8 +1115,10 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
         "taskId": 5,
         "title": "Implement login UI",
         "description": "Tạo form đăng nhập với email và password",
-        "assigneeId": 2,
-        "assigneeName": "Nguyen Van B",
+        "assignee": {
+            "id": 2,
+            "name": "Nguyen Van B"
+        },
         "priority": "HIGH",
         "status": "TODO",
         "position": 0,
@@ -1154,8 +1162,10 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
         "taskId": 5,
         "title": "Implement login UI with validation",
         "description": "Thêm validate email format",
-        "assigneeId": 3,
-        "assigneeName": "Tran Van C",
+        "assignee": {
+            "id": 3,
+            "name": "Tran Van C"
+        },
         "priority": "CRITICAL",
         "status": "IN_PROGRESS",
         "position": 0,
@@ -1207,8 +1217,10 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
             "taskId": 5,
             "title": "Implement login UI",
             "description": "...",
-            "assigneeId": 2,
-            "assigneeName": "Nguyen Van B",
+            "assignee": {
+                "id": 2,
+                "name": "Nguyen Van B"
+            },
             "priority": "HIGH",
             "status": "DONE",
             "position": 0,
@@ -1220,8 +1232,7 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
             "taskId": 5,
             "title": "Implement register UI",
             "description": "...",
-            "assigneeId": null,
-            "assigneeName": null,
+            "assignee": null,
             "priority": "MEDIUM",
             "status": "TODO",
             "position": 1,
