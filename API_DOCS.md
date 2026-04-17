@@ -586,9 +586,13 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
     - `TODO`/`IN_PROGRESS` → `CANCELLED` (Hủy task)
     - `CANCELLED` → `TODO` (Restart task)
     - `DONE` → `IN_PROGRESS` (Reopen task)
+  - **Task chính chỉ được DONE khi tất cả sub-tasks đã DONE**:
+    - Nếu còn bất kỳ sub-task nào chưa hoàn thành (khác DONE), task chính sẽ bị từ chối chuyển sang DONE.
+    - Error message: `"Không thể hoàn thành task vì còn X sub-task chưa xong: [tên sub-task]. Vui lòng hoàn thành tất cả sub-task trước khi đánh dấu task chính hoàn thành."`
   - `TASK_STATUS_UPDATED` activity log sẽ được tạo tự động với thông tin old/new status.
 - **Error Cases**:
   - `400`: Chuyển đổi trạng thái không hợp lệ (ví dụ: DONE → TODO trực tiếp).
+  - `400`: Task chính không thể hoàn thành vì còn sub-task chưa hoàn thành.
   - `403`: User không phải thành viên ACCEPTED của project.
   - `404`: Task không tồn tại hoặc không thuộc project.
 

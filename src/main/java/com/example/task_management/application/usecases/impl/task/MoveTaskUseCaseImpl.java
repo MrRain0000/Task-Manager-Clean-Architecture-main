@@ -22,6 +22,8 @@ import com.example.task_management.domain.enums.TaskStatus;
 import com.example.task_management.domain.services.Task.TaskOrderService;
 import com.example.task_management.infrastructure.persistence.jparepositories.TaskJpaRepository;
 import com.example.task_management.infrastructure.persistence.jpaentities.TaskJpaEntity;
+import com.example.task_management.domain.entities.SubTask;
+import com.example.task_management.application.repositories.subtask.SubTaskQueryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -51,6 +53,7 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
     private final PermissionService permissionService;
     private final LogActivityUseCase logActivityUseCase;
     private final TaskJpaRepository taskJpaRepository;
+    private final SubTaskQueryRepository subTaskQueryRepository;
 
     public MoveTaskUseCaseImpl(TaskQueryRepository taskQueryRepository,
                                 TaskCommandRepository taskCommandRepository,
@@ -58,7 +61,8 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
                                 TaskStatusParser taskStatusParser,
                                 PermissionService permissionService,
                                 LogActivityUseCase logActivityUseCase,
-                                TaskJpaRepository taskJpaRepository) {
+                                TaskJpaRepository taskJpaRepository,
+                                SubTaskQueryRepository subTaskQueryRepository) {
         this.taskQueryRepository = taskQueryRepository;
         this.taskCommandRepository = taskCommandRepository;
         this.taskOrderService = taskOrderService;
@@ -66,6 +70,7 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
         this.permissionService = permissionService;
         this.logActivityUseCase = logActivityUseCase;
         this.taskJpaRepository = taskJpaRepository;
+        this.subTaskQueryRepository = subTaskQueryRepository;
     }
 
     @Override
@@ -90,6 +95,11 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
         // 3. Validate
         log.debug("[MoveTask] Validating move...");
         task.validateMove(toStatus, request.getToPosition(), projectId);
+
+        // Business Rule: Task DONE chỉ khi tất cả sub-tasks DONE
+        if (toStatus == TaskStatus.DONE) {
+            validateAllSubTasksComplete(taskId);
+        }
 
         User user = permissionService.validateProjectMember(projectId, userEmail);
         log.debug("[MoveTask] Validation OK userId={}", user.getId());
@@ -205,5 +215,39 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
                 .assigneeId(entity.getAssigneeId())
                 .position(entity.getPosition())
                 .build();
+    }
+
+    /**
+     * Business Rule: Validate tất cả sub-tasks đã hoàn thành trước khi task chính DONE.
+     * @throws IllegalStateException nếu còn sub-task chưa DONE
+     */
+    private void validateAllSubTasksComplete(Long taskId) {
+        List<SubTask> incompleteSubtasks = subTaskQueryRepository
+                .findAllByTaskId(taskId)
+                .stream()
+                .filter(subTask -> subTask.getStatus() != TaskStatus.DONE)
+                .toList();
+
+        if (!incompleteSubtasks.isEmpty()) {
+            String subtaskTitles = incompleteSubtasks.stream()
+                    .map(SubTask::getTitle)
+                    .limit(3)
+                    .collect(Collectors.joining(", "));
+            String suffix = incompleteSubtasks.size() > 3
+                    ? " và " + (incompleteSubtasks.size() - 3) + " sub-task khác"
+                    : "";
+
+            String message = String.format(
+                "Không thể hoàn thành task vì còn %d sub-task chưa xong: %s%s. " +
+                "Vui lòng hoàn thành tất cả sub-task trước khi đánh dấu task chính hoàn thành.",
+                incompleteSubtasks.size(), subtaskTitles, suffix
+            );
+
+            log.warn("[MoveTask] Validation failed - incomplete subtasks for taskId={}: {}",
+                    taskId, message);
+            throw new IllegalStateException(message);
+        }
+
+        log.debug("[MoveTask] All subtasks completed for taskId={}", taskId);
     }
 }
