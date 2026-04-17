@@ -77,21 +77,16 @@ public class CreateSubTaskUseCaseImpl implements CreateSubTaskUseCase {
             validateAssignee(task.getProjectId(), request.getAssigneeId());
         }
 
-        // 6. Tính position (append vào cuối)
-        Integer maxPosition = subTaskQueryRepository.findMaxPositionByTaskId(taskId);
-        int newPosition = (maxPosition == null || maxPosition < 0) ? 0 : maxPosition + 1;
-
-        // 7. Tạo sub-task
+        // 6. Tạo sub-task
         SubTask subTask = new SubTask();
         subTask.setTaskId(taskId);
         subTask.setTitle(request.getTitle().trim());
         subTask.setDescription(request.getDescription());
         subTask.setAssigneeId(request.getAssigneeId());
         subTask.setPriority(request.getPriority() != null ? request.getPriority() : TaskPriority.MEDIUM);
-        subTask.setPosition(newPosition);
 
         SubTask saved = subTaskCommandRepository.save(subTask);
-        log.info("[CreateSubTask] Thành công - subtaskId={}, position={}", saved.getId(), newPosition);
+        log.info("[CreateSubTask] Thành công - subtaskId={}", saved.getId());
 
         // 8. Ghi log hoạt động
         ActivityLog logEntry = ActivityLog.builder()
@@ -136,7 +131,6 @@ public class CreateSubTaskUseCaseImpl implements CreateSubTaskUseCase {
                 .assigneeName(assigneeName)
                 .priority(subTask.getPriority())
                 .status(subTask.getStatus())
-                .position(subTask.getPosition())
                 .createdAt(subTask.getCreatedAt())
                 .updatedAt(subTask.getUpdatedAt())
                 .build();

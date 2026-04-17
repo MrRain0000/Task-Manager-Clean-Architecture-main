@@ -26,7 +26,6 @@ public class SubTaskMapper {
                 .assignee(buildAssigneeInfo(result.getAssigneeId(), result.getAssigneeName()))
                 .priority(result.getPriority())
                 .status(result.getStatus())
-                .position(result.getPosition())
                 .createdAt(result.getCreatedAt())
                 .updatedAt(result.getUpdatedAt())
                 .build();

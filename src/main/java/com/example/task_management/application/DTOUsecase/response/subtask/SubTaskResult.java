@@ -21,7 +21,6 @@ public class SubTaskResult {
     private String assigneeName;
     private TaskPriority priority;
     private TaskStatus status;
-    private Integer position;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -1,12 +1,10 @@
 package com.example.task_management.interfaces.controllers;
 
 import com.example.task_management.application.DTOUsecase.request.subtask.CreateSubTaskRequest;
-import com.example.task_management.application.DTOUsecase.request.subtask.ReorderSubTasksRequest;
 import com.example.task_management.application.DTOUsecase.request.subtask.UpdateSubTaskRequest;
 import com.example.task_management.application.usecases.subtask.CreateSubTaskUseCase;
 import com.example.task_management.application.usecases.subtask.DeleteSubTaskUseCase;
 import com.example.task_management.application.usecases.subtask.GetSubTasksUseCase;
-import com.example.task_management.application.usecases.subtask.ReorderSubTasksUseCase;
 import com.example.task_management.application.usecases.subtask.UpdateSubTaskUseCase;
 import com.example.task_management.domain.enums.TaskStatus;
 import com.example.task_management.interfaces.dto.response.ApiResponse;
@@ -33,7 +31,6 @@ public class SubTaskController {
     private final UpdateSubTaskUseCase updateSubTaskUseCase;
     private final DeleteSubTaskUseCase deleteSubTaskUseCase;
     private final GetSubTasksUseCase getSubTasksUseCase;
-    private final ReorderSubTasksUseCase reorderSubTasksUseCase;
     private final SubTaskMapper subTaskMapper;
 
     public SubTaskController(
@@ -41,13 +38,11 @@ public class SubTaskController {
             UpdateSubTaskUseCase updateSubTaskUseCase,
             DeleteSubTaskUseCase deleteSubTaskUseCase,
             GetSubTasksUseCase getSubTasksUseCase,
-            ReorderSubTasksUseCase reorderSubTasksUseCase,
             SubTaskMapper subTaskMapper) {
         this.createSubTaskUseCase = createSubTaskUseCase;
         this.updateSubTaskUseCase = updateSubTaskUseCase;
         this.deleteSubTaskUseCase = deleteSubTaskUseCase;
         this.getSubTasksUseCase = getSubTasksUseCase;
-        this.reorderSubTasksUseCase = reorderSubTasksUseCase;
         this.subTaskMapper = subTaskMapper;
     }
 
@@ -124,20 +119,4 @@ public class SubTaskController {
         return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Lấy danh sách sub-tasks thành công", responses));
     }
 
-    /**
-     * 12.5 Reorder Sub-tasks
-     * PUT /api/tasks/{taskId}/subtasks/reorder
-     */
-    @PutMapping("/api/tasks/{taskId}/subtasks/reorder")
-    public ResponseEntity<ApiResponse<Void>> reorderSubTasks(
-            @PathVariable Long taskId,
-            @RequestBody ReorderSubTasksRequest request,
-            Authentication authentication) {
-
-        log.info("[API] Reorder sub-tasks - taskId={}, user={}", taskId, authentication.getName());
-
-        reorderSubTasksUseCase.reorderSubTasks(taskId, request.getSubtaskIds(), authentication.getName());
-
-        return ResponseEntity.ok(ApiResponse.success(HttpStatus.OK.value(), "Sắp xếp lại sub-tasks thành công", null));
-    }
 }

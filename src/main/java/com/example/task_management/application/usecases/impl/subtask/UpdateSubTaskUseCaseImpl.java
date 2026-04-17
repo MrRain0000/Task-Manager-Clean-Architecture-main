@@ -135,7 +135,6 @@ public class UpdateSubTaskUseCaseImpl implements UpdateSubTaskUseCase {
                 .assigneeName(assigneeName)
                 .priority(subTask.getPriority())
                 .status(subTask.getStatus())
-                .position(subTask.getPosition())
                 .createdAt(subTask.getCreatedAt())
                 .updatedAt(subTask.getUpdatedAt())
                 .build();

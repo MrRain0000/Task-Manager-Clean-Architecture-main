@@ -20,7 +20,6 @@ public class SubTaskResponse {
     private AssigneeInfo assignee;
     private TaskPriority priority;
     private TaskStatus status;
-    private Integer position;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
