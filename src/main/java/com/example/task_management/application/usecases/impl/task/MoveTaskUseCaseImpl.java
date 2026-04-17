@@ -114,6 +114,8 @@ public class MoveTaskUseCaseImpl implements MoveTaskUseCase {
 
         // 6. Chỉ save task được move
         Task savedTask = taskCommandRepository.save(task);
+        log.info("[MoveTask] Status thay đổi: {} → {} (taskId={})",
+                fromStatus, toStatus, savedTask.getId());
         log.info("[MoveTask] Hoàn thành - taskId={}, newStatus={}, newPosition={}",
                 savedTask.getId(), savedTask.getStatus(), savedTask.getPosition());
 
