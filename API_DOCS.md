@@ -754,6 +754,7 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 ```
 - **Business Rules**:
   - Chỉ thành viên đã ACCEPTED lời mời mới có thể xem chi tiết project.
+  - Danh sách `members` chỉ trả về các thành viên có `invitationStatus=ACCEPTED` (không bao gồm PENDING).
   - Task summary được tính tự động dựa trên số lượng task theo từng status.
 - **Error Cases**:
   - `403`: User chưa chấp nhận lời mời vào project.
@@ -1132,7 +1133,7 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 ```
 - **Business Rules**:
   - User phải là thành viên ACCEPTED của project chứa task chính.
-  - `assigneeId` nếu có, phải là thành viên của project.
+  - `assigneeId` nếu có, phải là thành viên **chính thức (ACCEPTED)** của project.
   - Activity log `SUBTASK_CREATED` được tạo.
 - **Log Output**:
 ```
@@ -1143,7 +1144,7 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
   - `400`: Title trống hoặc quá dài (>200 ký tự).
   - `403`: User không có quyền.
   - `404`: Task chính không tồn tại.
-  - `400`: Assignee không phải thành viên project.
+  - `400`: Assignee không phải thành viên chính thức của project (chưa ACCEPTED lời mời).
 
 ### 12.2 Update Sub-task (Sửa công việc con)
 - **URL**: `PUT /api/subtasks/{subtaskId}`
@@ -1183,6 +1184,7 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 - **Business Rules**:
   - Chỉ thành viên ACCEPTED mới được cập nhật.
   - Các field không gửi sẽ giữ nguyên giá trị cũ.
+  - `assigneeId` nếu có, phải là thành viên **chính thức (ACCEPTED)** của project.
   - Nếu `status` chuyển sang `DONE`, có thể trigger update progress task chính.
   - Activity log `SUBTASK_UPDATED` được tạo.
 - **Log Output** (khi status/assignee/priority thay đổi):
@@ -1195,7 +1197,7 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 - **Error Cases**:
   - `404`: Sub-task không tồn tại.
   - `403`: User không có quyền.
-  - `400`: Assignee không hợp lệ.
+  - `400`: Assignee không phải thành viên chính thức của project (chưa ACCEPTED lời mời).
 
 ### 12.3 Delete Sub-task (Xóa công việc con)
 - **URL**: `DELETE /api/subtasks/{subtaskId}`

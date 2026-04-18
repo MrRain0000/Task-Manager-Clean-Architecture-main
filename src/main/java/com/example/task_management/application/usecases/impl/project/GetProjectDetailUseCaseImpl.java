@@ -10,6 +10,7 @@ import com.example.task_management.domain.entities.Project;
 import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.Task;
 import com.example.task_management.domain.entities.User;
+import com.example.task_management.domain.enums.InvitationStatus;
 import com.example.task_management.domain.services.PermissionService;
 import com.example.task_management.interfaces.exceptions.ProjectNotFoundException;
 import org.springframework.stereotype.Service;
@@ -53,9 +54,10 @@ public class GetProjectDetailUseCaseImpl implements GetProjectDetailUseCase {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ProjectNotFoundException("Dự án không tồn tại"));
 
-        // 3. Lấy danh sách members và user details
+        // 3. Lấy danh sách members (chỉ ACCEPTED) và user details
         List<ProjectMember> members = projectMemberRepository.findAllByProjectId(projectId);
         List<ProjectDetailResult.ProjectMemberInfo> memberInfos = members.stream()
+                .filter(member -> member.getInvitationStatus() == InvitationStatus.ACCEPTED)
                 .map(member -> {
                     User memberUser = userRepository.findById(member.getUserId()).orElse(null);
                     return ProjectDetailResult.ProjectMemberInfo.builder()

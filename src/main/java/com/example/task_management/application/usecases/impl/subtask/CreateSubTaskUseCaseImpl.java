@@ -2,7 +2,6 @@ package com.example.task_management.application.usecases.impl.subtask;
 
 import com.example.task_management.application.DTOUsecase.request.subtask.CreateSubTaskRequest;
 import com.example.task_management.application.DTOUsecase.response.subtask.SubTaskResult;
-import com.example.task_management.application.repositories.ProjectMemberRepository;
 import com.example.task_management.application.repositories.TaskRepository;
 import com.example.task_management.application.repositories.UserRepository;
 import com.example.task_management.application.repositories.activitylog.ActivityLogCommandRepository;
@@ -10,14 +9,13 @@ import com.example.task_management.application.repositories.subtask.SubTaskComma
 import com.example.task_management.application.repositories.subtask.SubTaskQueryRepository;
 import com.example.task_management.application.usecases.subtask.CreateSubTaskUseCase;
 import com.example.task_management.domain.entities.ActivityLog;
-import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.SubTask;
 import com.example.task_management.domain.entities.Task;
 import com.example.task_management.domain.entities.User;
 import com.example.task_management.domain.enums.ActionType;
 import com.example.task_management.domain.enums.EntityType;
-import com.example.task_management.domain.enums.InvitationStatus;
 import com.example.task_management.domain.enums.TaskPriority;
+import com.example.task_management.domain.services.Task.TaskAssignerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -31,7 +29,7 @@ public class CreateSubTaskUseCaseImpl implements CreateSubTaskUseCase {
     private final SubTaskQueryRepository subTaskQueryRepository;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
-    private final ProjectMemberRepository projectMemberRepository;
+    private final TaskAssignerService taskAssignerService;
     private final ActivityLogCommandRepository activityLogCommandRepository;
 
     public CreateSubTaskUseCaseImpl(
@@ -39,13 +37,13 @@ public class CreateSubTaskUseCaseImpl implements CreateSubTaskUseCase {
             SubTaskQueryRepository subTaskQueryRepository,
             TaskRepository taskRepository,
             UserRepository userRepository,
-            ProjectMemberRepository projectMemberRepository,
+            TaskAssignerService taskAssignerService,
             ActivityLogCommandRepository activityLogCommandRepository) {
         this.subTaskCommandRepository = subTaskCommandRepository;
         this.subTaskQueryRepository = subTaskQueryRepository;
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
-        this.projectMemberRepository = projectMemberRepository;
+        this.taskAssignerService = taskAssignerService;
         this.activityLogCommandRepository = activityLogCommandRepository;
     }
 
@@ -62,7 +60,7 @@ public class CreateSubTaskUseCaseImpl implements CreateSubTaskUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("Task không tồn tại"));
 
         // 3. Check quyền (user phải là thành viên ACCEPTED của project)
-        validateProjectMembership(task.getProjectId(), user.getId());
+        taskAssignerService.validateAssignerMembership(task.getProjectId(), user.getId());
 
         // 4. Validate request
         if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
@@ -72,9 +70,9 @@ public class CreateSubTaskUseCaseImpl implements CreateSubTaskUseCase {
             throw new IllegalArgumentException("Tiêu đề sub-task không được quá 200 ký tự");
         }
 
-        // 5. Validate assignee nếu có
+        // 5. Validate assignee nếu có (phải là thành viên ACCEPTED)
         if (request.getAssigneeId() != null) {
-            validateAssignee(task.getProjectId(), request.getAssigneeId());
+            taskAssignerService.validateAssignee(task.getProjectId(), request.getAssigneeId());
         }
 
         // 6. Tạo sub-task
@@ -103,23 +101,6 @@ public class CreateSubTaskUseCaseImpl implements CreateSubTaskUseCase {
         return buildResult(saved, null);
     }
 
-    private void validateProjectMembership(Long projectId, Long userId) {
-        ProjectMember membership = projectMemberRepository.findByProjectIdAndUserId(projectId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("Bạn không phải thành viên của project này"));
-
-        if (membership.getInvitationStatus() != InvitationStatus.ACCEPTED) {
-            throw new IllegalArgumentException("Bạn chưa được chấp nhận vào project này");
-        }
-    }
-
-    private void validateAssignee(Long projectId, Long assigneeId) {
-        ProjectMember assigneeMember = projectMemberRepository.findByProjectIdAndUserId(projectId, assigneeId)
-                .orElseThrow(() -> new IllegalArgumentException("Người được giao không phải thành viên project"));
-
-        if (assigneeMember.getInvitationStatus() != InvitationStatus.ACCEPTED) {
-            throw new IllegalArgumentException("Người được giao chưa được chấp nhận vào project");
-        }
-    }
 
     private SubTaskResult buildResult(SubTask subTask, String assigneeName) {
         return SubTaskResult.builder()

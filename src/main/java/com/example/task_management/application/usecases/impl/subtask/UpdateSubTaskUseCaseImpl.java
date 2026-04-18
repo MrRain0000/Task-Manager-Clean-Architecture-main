@@ -2,7 +2,6 @@ package com.example.task_management.application.usecases.impl.subtask;
 
 import com.example.task_management.application.DTOUsecase.request.subtask.UpdateSubTaskRequest;
 import com.example.task_management.application.DTOUsecase.response.subtask.SubTaskResult;
-import com.example.task_management.application.repositories.ProjectMemberRepository;
 import com.example.task_management.application.repositories.TaskRepository;
 import com.example.task_management.application.repositories.UserRepository;
 import com.example.task_management.application.repositories.activitylog.ActivityLogCommandRepository;
@@ -10,13 +9,12 @@ import com.example.task_management.application.repositories.subtask.SubTaskComma
 import com.example.task_management.application.repositories.subtask.SubTaskQueryRepository;
 import com.example.task_management.application.usecases.subtask.UpdateSubTaskUseCase;
 import com.example.task_management.domain.entities.ActivityLog;
-import com.example.task_management.domain.entities.ProjectMember;
 import com.example.task_management.domain.entities.SubTask;
 import com.example.task_management.domain.entities.Task;
 import com.example.task_management.domain.entities.User;
 import com.example.task_management.domain.enums.ActionType;
 import com.example.task_management.domain.enums.EntityType;
-import com.example.task_management.domain.enums.InvitationStatus;
+import com.example.task_management.domain.services.Task.TaskAssignerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,7 +28,7 @@ public class UpdateSubTaskUseCaseImpl implements UpdateSubTaskUseCase {
     private final SubTaskQueryRepository subTaskQueryRepository;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
-    private final ProjectMemberRepository projectMemberRepository;
+    private final TaskAssignerService taskAssignerService;
     private final ActivityLogCommandRepository activityLogCommandRepository;
 
     public UpdateSubTaskUseCaseImpl(
@@ -38,13 +36,13 @@ public class UpdateSubTaskUseCaseImpl implements UpdateSubTaskUseCase {
             SubTaskQueryRepository subTaskQueryRepository,
             TaskRepository taskRepository,
             UserRepository userRepository,
-            ProjectMemberRepository projectMemberRepository,
+            TaskAssignerService taskAssignerService,
             ActivityLogCommandRepository activityLogCommandRepository) {
         this.subTaskCommandRepository = subTaskCommandRepository;
         this.subTaskQueryRepository = subTaskQueryRepository;
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
-        this.projectMemberRepository = projectMemberRepository;
+        this.taskAssignerService = taskAssignerService;
         this.activityLogCommandRepository = activityLogCommandRepository;
     }
 
@@ -63,7 +61,7 @@ public class UpdateSubTaskUseCaseImpl implements UpdateSubTaskUseCase {
         // 3. Get task chính và validate quyền
         Task task = taskRepository.findById(subTask.getTaskId())
                 .orElseThrow(() -> new IllegalArgumentException("Task chính không tồn tại"));
-        validateProjectMembership(task.getProjectId(), user.getId());
+        taskAssignerService.validateAssignerMembership(task.getProjectId(), user.getId());
 
         // 4. Validate title nếu có update
         if (request.getTitle() != null) {
@@ -75,9 +73,9 @@ public class UpdateSubTaskUseCaseImpl implements UpdateSubTaskUseCase {
             }
         }
 
-        // 5. Validate assignee nếu có update
+        // 5. Validate assignee nếu có update (phải là thành viên ACCEPTED)
         if (request.getAssigneeId() != null) {
-            validateAssignee(task.getProjectId(), request.getAssigneeId());
+            taskAssignerService.validateAssignee(task.getProjectId(), request.getAssigneeId());
         }
 
         // 6. Lưu status, assignee và priority cũ để log
@@ -129,24 +127,6 @@ public class UpdateSubTaskUseCaseImpl implements UpdateSubTaskUseCase {
 
         // 8. Build result
         return buildResult(saved, null);
-    }
-
-    private void validateProjectMembership(Long projectId, Long userId) {
-        ProjectMember membership = projectMemberRepository.findByProjectIdAndUserId(projectId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("Bạn không phải thành viên của project này"));
-
-        if (membership.getInvitationStatus() != InvitationStatus.ACCEPTED) {
-            throw new IllegalArgumentException("Bạn chưa được chấp nhận vào project này");
-        }
-    }
-
-    private void validateAssignee(Long projectId, Long assigneeId) {
-        ProjectMember assigneeMember = projectMemberRepository.findByProjectIdAndUserId(projectId, assigneeId)
-                .orElseThrow(() -> new IllegalArgumentException("Người được giao không phải thành viên project"));
-
-        if (assigneeMember.getInvitationStatus() != InvitationStatus.ACCEPTED) {
-            throw new IllegalArgumentException("Người được giao chưa được chấp nhận vào project");
-        }
     }
 
     private SubTaskResult buildResult(SubTask subTask, String assigneeName) {
