@@ -80,9 +80,11 @@ public class UpdateSubTaskUseCaseImpl implements UpdateSubTaskUseCase {
             validateAssignee(task.getProjectId(), request.getAssigneeId());
         }
 
-        // 6. Lưu status cũ để log
+        // 6. Lưu status và assignee cũ để log
         var oldStatus = subTask.getStatus();
+        var oldAssigneeId = subTask.getAssigneeId();
         log.debug("[UpdateSubTask] Status hiện tại: {}, Status request: {}", oldStatus, request.getStatus());
+        log.debug("[UpdateSubTask] Assignee hiện tại: {}, Assignee request: {}", oldAssigneeId, request.getAssigneeId());
 
         // 7. Update sub-task
         subTask.update(
@@ -99,6 +101,11 @@ public class UpdateSubTaskUseCaseImpl implements UpdateSubTaskUseCase {
         if (request.getStatus() != null && !request.getStatus().equals(oldStatus)) {
             log.info("[UpdateSubTask] Status thay đổi: {} → {} (subtaskId={})",
                     oldStatus, request.getStatus(), saved.getId());
+        }
+        // Log chi tiết assignee change
+        if (request.getAssigneeId() != null && !request.getAssigneeId().equals(oldAssigneeId)) {
+            log.info("[UpdateSubTask] Assignee thay đổi: {} → {} (subtaskId={})",
+                    oldAssigneeId, request.getAssigneeId(), saved.getId());
         }
         log.info("[UpdateSubTask] Thành công - subtaskId={}", saved.getId());
 
