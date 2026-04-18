@@ -80,11 +80,13 @@ public class UpdateSubTaskUseCaseImpl implements UpdateSubTaskUseCase {
             validateAssignee(task.getProjectId(), request.getAssigneeId());
         }
 
-        // 6. Lưu status và assignee cũ để log
+        // 6. Lưu status, assignee và priority cũ để log
         var oldStatus = subTask.getStatus();
         var oldAssigneeId = subTask.getAssigneeId();
+        var oldPriority = subTask.getPriority();
         log.debug("[UpdateSubTask] Status hiện tại: {}, Status request: {}", oldStatus, request.getStatus());
         log.debug("[UpdateSubTask] Assignee hiện tại: {}, Assignee request: {}", oldAssigneeId, request.getAssigneeId());
+        log.debug("[UpdateSubTask] Priority hiện tại: {}, Priority request: {}", oldPriority, request.getPriority());
 
         // 7. Update sub-task
         subTask.update(
@@ -106,6 +108,11 @@ public class UpdateSubTaskUseCaseImpl implements UpdateSubTaskUseCase {
         if (request.getAssigneeId() != null && !request.getAssigneeId().equals(oldAssigneeId)) {
             log.info("[UpdateSubTask] Assignee thay đổi: {} → {} (subtaskId={})",
                     oldAssigneeId, request.getAssigneeId(), saved.getId());
+        }
+        // Log chi tiết priority change
+        if (request.getPriority() != null && !request.getPriority().equals(oldPriority)) {
+            log.info("[UpdateSubTask] Priority thay đổi: {} → {} (subtaskId={})",
+                    oldPriority, request.getPriority(), saved.getId());
         }
         log.info("[UpdateSubTask] Thành công - subtaskId={}", saved.getId());
 

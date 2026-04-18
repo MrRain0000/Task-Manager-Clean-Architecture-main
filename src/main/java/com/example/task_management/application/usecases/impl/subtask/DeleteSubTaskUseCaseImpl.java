@@ -67,14 +67,18 @@ public class DeleteSubTaskUseCaseImpl implements DeleteSubTaskUseCase {
         Long taskId = subTask.getTaskId();
         Long projectId = task.getProjectId();
 
-        // 4. Xóa sub-task
-        subTaskCommandRepository.deleteById(subtaskId);
-        log.info("[DeleteSubTask] Thành công - subtaskId={}", subtaskId);
+        // 4. Log chi tiết sub-task bị xóa
+        log.info("[DeleteSubTask] Xóa sub-task: title='{}', status={}, priority={}, assigneeId={} (subtaskId={})",
+                subtaskTitle, subTask.getStatus(), subTask.getPriority(), subTask.getAssigneeId(), subtaskId);
 
-        // 5. Reorder các sub-task còn lại
+        // 5. Xóa sub-task
+        subTaskCommandRepository.deleteById(subtaskId);
+        log.info("[DeleteSubTask] Thành công - subtaskId={} đã xóa", subtaskId);
+
+        // 6. Reorder các sub-task còn lại
         reorderRemainingSubTasks(taskId);
 
-        // 6. Ghi log hoạt động
+        // 7. Ghi log hoạt động
         ActivityLog logEntry = ActivityLog.builder()
                 .projectId(projectId)
                 .userId(user.getId())

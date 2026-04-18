@@ -1185,10 +1185,11 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
   - Các field không gửi sẽ giữ nguyên giá trị cũ.
   - Nếu `status` chuyển sang `DONE`, có thể trigger update progress task chính.
   - Activity log `SUBTASK_UPDATED` được tạo.
-- **Log Output** (khi status/assignee thay đổi):
+- **Log Output** (khi status/assignee/priority thay đổi):
 ```
 [UpdateSubTask] Status thay đổi: TODO → DONE (subtaskId=9)
 [UpdateSubTask] Assignee thay đổi: 5 → 8 (subtaskId=9)
+[UpdateSubTask] Priority thay đổi: MEDIUM → HIGH (subtaskId=9)
 [UpdateSubTask] Thành công - subtaskId=9
 ```
 - **Error Cases**:
@@ -1213,6 +1214,7 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 - **Log Output**:
 ```
 [DeleteSubTask] Bắt đầu - subtaskId=5, user=james@example.com
+[DeleteSubTask] Xóa sub-task: title='Implement login UI', status=DONE, priority=HIGH, assigneeId=3 (subtaskId=5)
 [DeleteSubTask] Thành công - subtaskId=5 đã xóa
 ```
 - **Error Cases**:
