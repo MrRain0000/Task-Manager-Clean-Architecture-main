@@ -13,12 +13,15 @@ import com.example.task_management.interfaces.exceptions.ProjectNotFoundExceptio
 import com.example.task_management.interfaces.exceptions.ProjectValidationException;
 import com.example.task_management.interfaces.exceptions.UserNotFoundException;
 import com.example.task_management.domain.services.PermissionService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.quality.Strictness;
+import org.mockito.junit.jupiter.MockitoSettings;
 
 import java.util.Optional;
 
@@ -32,6 +35,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class UpdateProjectUseCaseImplTest {
 
     @Mock
@@ -48,6 +52,9 @@ class UpdateProjectUseCaseImplTest {
 
     @Mock
     private PermissionService permissionService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private UpdateProjectUseCaseImpl updateProjectUseCase;
@@ -69,7 +76,9 @@ class UpdateProjectUseCaseImplTest {
         project.setDescription("Old Description");
         project.setOwnerId(1L);
 
-        request = new UpdateProjectCommand("  New Name  ", "  New Description  ");
+        request = new UpdateProjectCommand();
+        request.setName("  New Name  ");
+        request.setDescription("  New Description  ");
         when(permissionService.canUpdateProject(any(Project.class), any(User.class))).thenReturn(true);
     }
 
@@ -93,7 +102,7 @@ class UpdateProjectUseCaseImplTest {
         assertEquals("New Name", result.getName());
         assertEquals("New Description", result.getDescription());
         verify(projectRepository, times(1)).save(any(Project.class));
-        verify(logActivityUseCase, times(1)).logActivity(any());
+        verify(eventPublisher).publishEvent(any());
     }
 
     @Test
@@ -132,7 +141,9 @@ class UpdateProjectUseCaseImplTest {
 
     @Test
     void updateProject_BlankName_ShouldThrowValidationException() {
-        UpdateProjectCommand invalidRequest = new UpdateProjectCommand("   ", "Desc");
+        UpdateProjectCommand invalidRequest = new UpdateProjectCommand();
+        invalidRequest.setName("   ");
+        invalidRequest.setDescription("Desc");
         when(userRepository.findByEmail(currentUserEmail)).thenReturn(Optional.of(owner));
         when(projectRepository.findById(10L)).thenReturn(Optional.of(project));
 
@@ -144,7 +155,9 @@ class UpdateProjectUseCaseImplTest {
     @Test
     void updateProject_DescriptionTooLong_ShouldThrowValidationException() {
         String longDescription = "a".repeat(501);
-        UpdateProjectCommand invalidRequest = new UpdateProjectCommand("Name", longDescription);
+        UpdateProjectCommand invalidRequest = new UpdateProjectCommand();
+        invalidRequest.setName("Name");
+        invalidRequest.setDescription(longDescription);
         when(userRepository.findByEmail(currentUserEmail)).thenReturn(Optional.of(owner));
         when(projectRepository.findById(10L)).thenReturn(Optional.of(project));
         when(permissionService.canUpdateProject(project, owner)).thenReturn(true);

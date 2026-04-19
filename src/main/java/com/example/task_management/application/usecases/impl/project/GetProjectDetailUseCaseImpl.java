@@ -80,6 +80,7 @@ public class GetProjectDetailUseCaseImpl implements GetProjectDetailUseCase {
                 .name(project.getName())
                 .description(project.getDescription())
                 .ownerId(project.getOwnerId())
+                .deadline(project.getDeadline())
                 .members(memberInfos)
                 .taskSummary(taskSummary)
                 .build();

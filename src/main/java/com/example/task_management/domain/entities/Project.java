@@ -1,12 +1,14 @@
 package com.example.task_management.domain.entities;
 
 import com.example.task_management.interfaces.exceptions.ProjectValidationException;
+import java.time.LocalDate;
 
 public class Project {
     private Long id;
     private String name;
     private String description;
     private Long ownerId;
+    private LocalDate deadline;
 
     public Project() {}
 
@@ -44,4 +46,6 @@ public class Project {
     public void setDescription(String description) { this.description = description; }
     public Long getOwnerId() { return ownerId; }
     public void setOwnerId(Long ownerId) { this.ownerId = ownerId; }
+    public LocalDate getDeadline() { return deadline; }
+    public void setDeadline(LocalDate deadline) { this.deadline = deadline; }
 }

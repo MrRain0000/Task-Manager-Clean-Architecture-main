@@ -21,6 +21,7 @@ public class ProjectResponseMapper {
                 .name(projectResult.getName())
                 .description(projectResult.getDescription())
                 .ownerId(projectResult.getOwnerId())
+                .deadline(projectResult.getDeadline())
                 .build();
     }
 
@@ -52,6 +53,7 @@ public class ProjectResponseMapper {
                 .name(result.getName())
                 .description(result.getDescription())
                 .ownerId(result.getOwnerId())
+                .deadline(result.getDeadline())
                 .members(memberInfos)
                 .taskSummary(taskSummary)
                 .build();

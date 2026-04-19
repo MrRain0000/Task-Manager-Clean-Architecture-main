@@ -51,7 +51,7 @@ public class CreateProjectUseCaseImpl implements CreateProjectUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng hiện tại trong hệ thống."));
 
         // 2. Khởi tạo đối tượng Project theo đúng Request
-        Project project = ProjectFactory.create(request.getName(), request.getDescription(), owner.getId());
+        Project project = ProjectFactory.create(request.getName(), request.getDescription(), owner.getId(), request.getDueDate());
 
         Project savedProject = projectRepository.save(project);
 

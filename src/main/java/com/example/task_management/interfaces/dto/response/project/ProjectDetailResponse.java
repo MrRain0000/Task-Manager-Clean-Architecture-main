@@ -2,6 +2,7 @@ package com.example.task_management.interfaces.dto.response.project;
 
 import com.example.task_management.domain.enums.MemberRole;
 import com.example.task_management.domain.enums.InvitationStatus;
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,6 +19,7 @@ public class ProjectDetailResponse {
     private String name;
     private String description;
     private Long ownerId;
+    private LocalDate deadline;
     private List<ProjectMemberInfo> members;
     private TaskSummary taskSummary;
 

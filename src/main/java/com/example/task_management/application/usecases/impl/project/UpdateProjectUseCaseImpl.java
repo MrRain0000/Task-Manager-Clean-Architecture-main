@@ -61,6 +61,10 @@ public class UpdateProjectUseCaseImpl implements UpdateProjectUseCase {
 
         project.setName(normalizedName);
         project.setDescription(normalizedDescription);
+        
+        if (request.getDeadline() != null) {
+            project.setDeadline(request.getDeadline());
+        }
 
         Project updatedProject = projectRepository.save(project);
 

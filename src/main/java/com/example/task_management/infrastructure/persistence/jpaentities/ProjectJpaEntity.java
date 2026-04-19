@@ -1,6 +1,7 @@
 package com.example.task_management.infrastructure.persistence.jpaentities;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "projects")
@@ -18,6 +19,8 @@ public class ProjectJpaEntity {
     @Column(nullable = false)
     private Long ownerId;
 
+    private LocalDate deadline;
+
     public ProjectJpaEntity() {}
 
     public Long getId() { return id; }
@@ -28,4 +31,6 @@ public class ProjectJpaEntity {
     public void setDescription(String description) { this.description = description; }
     public Long getOwnerId() { return ownerId; }
     public void setOwnerId(Long ownerId) { this.ownerId = ownerId; }
+    public LocalDate getDeadline() { return deadline; }
+    public void setDeadline(LocalDate deadline) { this.deadline = deadline; }
 }

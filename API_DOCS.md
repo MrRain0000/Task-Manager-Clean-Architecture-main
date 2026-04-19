@@ -161,7 +161,8 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 ```json
 {
     "name": "Dự án Thiết kế Website",
-    "description": "Làm giao diện chuẩn UI/UX cho công ty ABC"
+    "description": "Làm giao diện chuẩn UI/UX cho công ty ABC",
+    "dueDate": "2025-05-27"
 }
 ```
 - **Response** (201 Created):
@@ -173,7 +174,8 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
         "id": 1,
         "name": "Dự án Thiết kế Website",
         "description": "Làm giao diện chuẩn UI/UX cho công ty ABC",
-        "ownerId": 1
+        "ownerId": 1,
+        "deadline": "2025-05-27"
     }
 }
 ```
@@ -186,7 +188,8 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 ```json
 {
     "name": "Dự án Thiết kế Website - Updated",
-    "description": "Mô tả cập nhật cho dự án"
+    "description": "Mô tả cập nhật cho dự án",
+    "dueDate": "2025-06-15"
 }
 ```
 - **Response** (200 OK):
@@ -198,12 +201,14 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
         "id": 1,
         "name": "Dự án Thiết kế Website - Updated",
         "description": "Mô tả cập nhật cho dự án",
-        "ownerId": 1
+        "ownerId": 1,
+        "deadline": "2025-06-15"
     }
 }
 ```
 - **Business Rules**:
   - Chỉ `OWNER` của dự án mới có quyền cập nhật.
+  - `dueDate` (YYYY-MM-DD): Ngày deadline của dự án, tùy chọn.
   - Tên và mô tả sẽ được normalize (trim whitespace, xử lý ký tự đặc biệt) trước khi lưu.
   - `PROJECT_UPDATED` activity log sẽ được tạo tự động.
 - **Error Cases**:
@@ -709,6 +714,64 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
   - `403`: User không phải thành viên của project.
   - `404`: Project không tồn tại.
 
+### 5.2 Lấy Activity Logs từ TẤT CẢ Projects (Cross-Project Timeline)
+
+> Pattern này dùng cho Dashboard Recent Activity và Timeline Page để hiển thị hoạt động từ tất cả projects của user.
+
+#### Frontend Implementation Pattern:
+```typescript
+// 1. Lấy danh sách tất cả projects
+const projectsRes = await getProjects()
+const projects = projectsRes.data.projects
+
+// 2. Gọi song song API activity logs cho từng project
+const activityPromises = projects.map(async (project) => {
+  const logsRes = await getActivityLogs(project.id, 0, 100)
+  return (logsRes.data.content || []).map(log => ({
+    ...log,
+    projectName: project.name,  // Thêm context project
+    projectId: project.id
+  }))
+})
+
+// 3. Merge và sort
+const allActivities = (await Promise.all(activityPromises)).flat()
+allActivities.sort((a, b) => 
+  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+)
+```
+
+#### UI Display Pattern:
+- **Dashboard Recent Activity**: Chỉ hiển thị 5 items mới nhất từ tất cả projects
+- **Timeline Page**: Group theo ngày (Today, Yesterday, Ngày cụ thể), hiển thị thời gian chính xác (HH:MM AM/PM)
+- **Time Format**: `new Date(activity.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })`
+
+#### Response với Project Context (Frontend Enhancement):
+Khi merge từ nhiều projects, thêm `projectName` và `projectId` vào mỗi activity:
+```json
+{
+    "id": 1,
+    "user": { "id": 5, "username": "Nguyen Van A" },
+    "actionType": "TASK_MOVED",
+    "entityType": "TASK",
+    "entityId": 10,
+    "description": "Moved task from TODO to IN_PROGRESS",
+    "projectName": "Website Redesign",      // Added by frontend
+    "projectId": 1,                          // Added by frontend
+    "createdAt": "2024-01-15T10:30:00"
+}
+```
+
+#### Pagination Cross-Project:
+- **Cách 1 (Frontend-side pagination)**: Fetch tất cả (max 100/project) → Merge → Slice theo page
+- **Cách 2 (Backend aggregation)**: Chưa hỗ trợ API tổng hợp cross-project (future enhancement)
+- **Recommendation**: Dùng Cách 1 cho < 100 projects. Nếu > 100 projects, cần backend hỗ trợ.
+
+#### Performance Notes:
+- Sử dụng `Promise.all()` để fetch song song, không sequential
+- Cache kết quả 5 phút ở frontend (localStorage)
+- Giới hạn `size` mỗi project để tránh payload quá lớn
+
 ---
 
 ## 6. Project Detail
@@ -726,6 +789,7 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
         "name": "Project Alpha",
         "description": "Mô tả dự án",
         "ownerId": 1,
+        "deadline": "2025-05-27",
         "members": [
             {
                 "userId": 1,
@@ -1007,11 +1071,122 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 
 ---
 
-## 10. Dashboard Statistics (Thống kê tổng quan)
+## 10. Timeline Page (Trang hoạt động tổng hợp)
+
+> Trang hiển thị toàn bộ hoạt động từ tất cả projects mà user tham gia. URL: `/timeline`
+
+### 10.1 Tính năng
+- **Cross-Project View**: Hiển thị activities từ tất cả projects (merge từ nhiều API calls)
+- **Group by Date**: Activities được group theo ngày (Today, Yesterday, hoặc ngày cụ thể)
+- **Search/Filter**: Tìm kiếm theo description, user, project name, action type
+- **Exact Timestamp**: Hiển thị thời gian chính xác đến giây
+- **Infinite Scroll / Pagination**: Hiển thị tất cả activities (không giới hạn như Dashboard)
+
+### 10.2 UI Components
+
+#### Activity Item Component:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 09:45 AM  👤 Alice    [CREATE] TASK  [Project A]  Task #123 │
+│           Created new task "Fix bug"                        │
+│           Jan 15, 2024, 09:45:30 AM                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Fields hiển thị:
+| Field | Format | Ví dụ |
+|-------|--------|-------|
+| Time | HH:MM AM/PM | `09:45 AM` |
+| User | Avatar + Username | `👤 Alice` |
+| Action Type | Badge màu | `[CREATE]`, `[UPDATE]`, `[DELETE]` |
+| Entity Type | Text | `TASK`, `PROJECT`, `SUBTASK` |
+| Project | Badge outline | `[Project A]` |
+| Description | Text | `Moved task from TODO to IN_PROGRESS` |
+| Exact Timestamp | Full datetime | `Jan 15, 2024, 09:45:30 AM` |
+
+#### Action Type Colors:
+| Type | Color | Ý nghĩa |
+|------|-------|---------|
+| `CREATE` | Green | Tạo mới |
+| `UPDATE` | Blue | Cập nhật |
+| `DELETE` | Red | Xóa |
+| `MOVE` | Orange | Di chuyển (Kanban) |
+| `ASSIGN` | Purple | Giao/Reassign task |
+
+### 10.3 Data Flow
+
+```
+┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   User      │────▶│  GET /projects   │────▶│  List projects  │
+│  Visit /    │     └──────────────────┘     └─────────────────┘
+│  timeline   │                │                           │
+└─────────────┘                ▼                           ▼
+                        ┌──────────────────────────────────────┐
+                        │ Promise.all(                         │
+                        │   projects.map(p =>                 │
+                        │     GET /projects/{p.id}/activity-logs
+                        │   )                                 │
+                        │ )                                   │
+                        └──────────────────────────────────────┘
+                                          │
+                                          ▼
+                        ┌──────────────────────────────────────┐
+                        │ Merge → Sort (newest first)           │
+                        │ Group by Date → Render UI             │
+                        └──────────────────────────────────────┘
+```
+
+### 10.4 Route Configuration
+```typescript
+// App.tsx
+<Route path="/timeline" element={<TimelinePage />} />
+```
+
+### 10.5 Navigation
+- **From Dashboard**: Button "View All Timeline" ở Recent Activity card
+- **Direct Access**: URL `/timeline`
+- **Back Navigation**: Button "Back to Dashboard" ở header
+
+### 10.6 Dashboard Recent Activity (Tóm tắt)
+
+> Dashboard chỉ hiển thị 5 activities mới nhất từ tất cả projects.
+
+#### Implementation:
+```typescript
+// DashboardPage.tsx
+// 1. Fetch từ tất cả projects (parallel)
+const activityPromises = loadedProjects.map(async (project) => {
+  const logsRes = await getActivityLogs(project.id, 0, 20)
+  return logsRes.data.content || []
+})
+const activitiesFromAllProjects = await Promise.all(activityPromises)
+const allActivities = activitiesFromAllProjects.flat()
+
+// 2. Sort và slice
+allActivities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+setRecentActivity(allActivities.slice(0, 10)) // Lưu 10 vào cache
+
+// 3. Render chỉ 5 items
+recentActivity.slice(0, 5).map((activity) => (
+  <HStack key={activity.id}>
+    {/* ... activity item UI */}
+  </HStack>
+))
+```
+
+#### UI Format:
+- Chỉ hiển thị **5 items** mới nhất
+- Format thời gian: "Just now", "2 hours ago", "Yesterday", "3 days ago"
+- Thông tin: Username + Description + Relative Time
+- Nút "View All Timeline" → Navigate đến `/timeline`
+
+---
+
+## 11. Dashboard Statistics (Thống kê tổng quan)
 
 > API tổng hợp dữ liệu thống kê từ tất cả projects của user. Dùng cho dashboard overview để tránh gọi nhiều API riêng lẻ.
 
-### 10.1 Get User Dashboard Stats
+### 11.1 Get User Dashboard Stats
 - **URL**: `GET /api/users/me/dashboard-stats`
 - **Auth Required**: Yes
 - **Response** (200 OK):
@@ -1073,9 +1248,9 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 
 ---
 
-## 11. File Upload Configuration
+## 12. File Upload Configuration
 
-### 11.1 Storage Configuration
+### 12.1 Storage Configuration
 - **Storage Type**: Local filesystem (có thể mở rộng S3/Cloud sau)
 - **Upload Directory**: `./uploads/attachments/{year}/{month}/{day}/`
 - **Max File Size**: 10MB
@@ -1086,11 +1261,11 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
 
 ---
 
-## 12. Sub-tasks (Công việc con)
+## 13. Sub-tasks (Công việc con)
 
 > Quản lý sub-tasks cho từng task chính. Sub-task có thể được thêm, sửa, xóa riêng biệt sau khi task chính được tạo.
 
-### 12.1 Create Sub-task (Thêm công việc con)
+### 13.1 Create Sub-task (Thêm công việc con)
 - **URL**: `POST /api/tasks/{taskId}/subtasks`
 - **Auth Required**: Yes (Thành viên ACCEPTED của project)
 - **Content-Type**: `application/json`
@@ -1146,7 +1321,7 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
   - `404`: Task chính không tồn tại.
   - `400`: Assignee không phải thành viên chính thức của project (chưa ACCEPTED lời mời).
 
-### 12.2 Update Sub-task (Sửa công việc con)
+### 13.2 Update Sub-task (Sửa công việc con)
 - **URL**: `PUT /api/subtasks/{subtaskId}`
 - **Auth Required**: Yes (Thành viên ACCEPTED của project)
 - **Content-Type**: `application/json`
@@ -1199,7 +1374,7 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
   - `403`: User không có quyền.
   - `400`: Assignee không phải thành viên chính thức của project (chưa ACCEPTED lời mời).
 
-### 12.3 Delete Sub-task (Xóa công việc con)
+### 13.3 Delete Sub-task (Xóa công việc con)
 - **URL**: `DELETE /api/subtasks/{subtaskId}`
 - **Auth Required**: Yes (Thành viên ACCEPTED của project)
 - **Response** (200 OK):
@@ -1223,7 +1398,7 @@ Mọi API yêu cầu Authen đều phải đính kèm Header:
   - `404`: Sub-task không tồn tại.
   - `403`: User không có quyền.
 
-### 12.4 Get Sub-tasks of Task (Lấy danh sách công việc con)
+### 13.4 Get Sub-tasks of Task (Lấy danh sách công việc con)
 - **URL**: `GET /api/tasks/{taskId}/subtasks`
 - **Auth Required**: Yes (Thành viên ACCEPTED của project)
 - **Response** (200 OK):

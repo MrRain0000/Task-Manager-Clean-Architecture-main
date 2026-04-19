@@ -1,5 +1,6 @@
 package com.example.task_management.interfaces.dto.response.project;
 
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,4 +15,5 @@ public class ProjectResponse {
     private String name;
     private String description;
     private Long ownerId;
+    private LocalDate deadline;
 }

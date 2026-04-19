@@ -26,6 +26,7 @@ public class ProjectRepositoryAdapter implements ProjectRepository {
         entity.setName(project.getName());
         entity.setDescription(project.getDescription());
         entity.setOwnerId(project.getOwnerId());
+        entity.setDeadline(project.getDeadline());
         
         ProjectJpaEntity savedEntity = projectJpaRepository.save(entity);
         
@@ -34,6 +35,7 @@ public class ProjectRepositoryAdapter implements ProjectRepository {
         savedProject.setName(savedEntity.getName());
         savedProject.setDescription(savedEntity.getDescription());
         savedProject.setOwnerId(savedEntity.getOwnerId());
+        savedProject.setDeadline(savedEntity.getDeadline());
         
         return savedProject;
     }
@@ -62,6 +64,7 @@ public class ProjectRepositoryAdapter implements ProjectRepository {
         project.setName(entity.getName());
         project.setDescription(entity.getDescription());
         project.setOwnerId(entity.getOwnerId());
+        project.setDeadline(entity.getDeadline());
         return project;
     }
 }

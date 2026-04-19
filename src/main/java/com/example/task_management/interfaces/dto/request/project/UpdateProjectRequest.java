@@ -2,6 +2,7 @@ package com.example.task_management.interfaces.dto.request.project;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
 
 public class UpdateProjectRequest {
     @NotBlank(message = "Tên dự án không được để trống")
@@ -11,10 +12,14 @@ public class UpdateProjectRequest {
     @Size(max = 500, message = "Mô tả dự án không được vượt quá 500 ký tự")
     private String description;
 
+    private LocalDate dueDate;
+
     public UpdateProjectRequest() {}
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public LocalDate getDueDate() { return dueDate; }
+    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
 }

@@ -17,6 +17,7 @@ public class ProjectMapper {
                 .name(project.getName())
                 .description(project.getDescription())
                 .ownerId(project.getOwnerId())
+                .deadline(project.getDeadline())
                 .build();
     }
 }

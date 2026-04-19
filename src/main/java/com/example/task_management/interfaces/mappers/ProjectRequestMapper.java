@@ -12,6 +12,10 @@ public class ProjectRequestMapper {
             return null;
         }
 
-        return new UpdateProjectCommand(request.getName(), request.getDescription());
+        UpdateProjectCommand command = new UpdateProjectCommand();
+        command.setName(request.getName());
+        command.setDescription(request.getDescription());
+        command.setDeadline(request.getDueDate());
+        return command;
     }
 }

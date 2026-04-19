@@ -1,6 +1,5 @@
 package com.example.task_management.interfaces.controllers;
 
-import com.example.task_management.application.DTOUsecase.request.project.UpdateProjectCommand;
 import com.example.task_management.application.DTOUsecase.response.project.ProjectDetailResult;
 import com.example.task_management.application.DTOUsecase.response.project.ProjectListResult;
 import com.example.task_management.application.DTOUsecase.response.project.ProjectResult;

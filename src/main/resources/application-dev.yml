@@ -43,7 +43,7 @@ app:
     resend-api-key: re_NwoLaupJ_AMKUoCCJ5VoaaDnJMeeGJraW
     from: verification@nguyenducthinh0.id.vn
   frontend:
-    url: http://localhost:5173
+    url: ${FRONTEND_URL:http://localhost:5173}
 
 google:
   client-id: ${GOOGLE_CLIENT_ID:940090065833-lucvnncjjmqosi7cn7d4p3bg93ap4br3.apps.googleusercontent.com}
